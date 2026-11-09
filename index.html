@@ -1,0 +1,1775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RedtailWorks!</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ══════ tokens ══════ */
+:root {
+  --desktop:  #d4d0c8;
+  --chrome:   #c0c0c0;
+  --win-bg:   #ffffff;
+  --bl:       #ffffff;
+  --bm:       #808080;
+  --bd:       #000000;
+  --bar-a:    #2d006b;
+  --bar-b:    #8800ee;
+  --bar-off-a:#6a6a6a;
+  --bar-off-b:#999999;
+  --text:     #000000;
+  --muted:    #555555;
+  --link:     #5500bb;
+  --link-h:   #8800ff;
+  --font-ui:  'VT323', monospace;
+  --font-body:'IBM Plex Mono', monospace;
+  --taskbar-h: 38px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* not responsive on purpose — no @media breakpoints, phones just pan/scroll the fixed desktop */
+
+html, body {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  background: #000;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.55;
+  overflow: auto;
+  cursor: url('cursor/cursor_32.png') 16 16, auto;
+}
+@media (min-resolution: 2dppx) {
+  body { cursor: url('cursor/cursor_64.png') 32 32, auto; }
+}
+
+a { color: var(--link); text-decoration: underline; }
+a:hover { color: var(--link-h); }
+h2 { font-family: var(--font-ui); font-size: 22px; letter-spacing: 0.06em; margin-bottom: 8px; }
+p { color: var(--muted); margin-bottom: 8px; }
+p:last-child { margin-bottom: 0; }
+.rule { border: none; border-top: 2px solid var(--bm); border-bottom: 2px solid var(--bl); margin: 10px 0; }
+
+/* ══════ desktop canvas ══════ */
+.desktop {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  padding-bottom: var(--taskbar-h);
+  background-color: #0a0016;
+  background-image: url('sparkle-bg.gif');
+  background-repeat: repeat;
+}
+
+/* desktop/laptop: canvas fills window elastically. small screens: fall back to fixed 1440x900, let touch pan around it */
+@media (max-width: 900px) {
+  .desktop {
+    width: 1440px;
+    height: 900px;
+    min-width: 1440px;
+    min-height: 900px;
+  }
+}
+
+/* ══════ desktop icons ══════ */
+.desktop-icon {
+  position: absolute;
+  width: 84px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 4px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  border: 1px dotted transparent;
+  text-decoration: none;
+}
+.desktop-icon:hover,
+.desktop-icon:active {
+  border-color: rgba(255,255,255,0.4);
+  background: rgba(136,0,238,0.18);
+}
+.desktop-icon img {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  image-rendering: pixelated;
+  border: 2px solid;
+  border-color: var(--bl) var(--bm) var(--bm) var(--bl);
+  background: #000;
+}
+/* bandcamp badge is a logo mark, keep uncropped */
+#icon-bandcamp img { object-fit: contain; }
+.desktop-icon span {
+  font-family: var(--font-ui);
+  font-size: 15px;
+  letter-spacing: 0.03em;
+  color: #fff;
+  text-align: center;
+  text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+}
+
+/* ══════ windows ══════ */
+.win {
+  position: absolute;
+  display: none;
+  flex-direction: column;
+  width: 460px;
+  min-width: 260px;
+  min-height: 160px;
+  border: 2px solid;
+  border-color: var(--bl) var(--bm) var(--bm) var(--bl);
+  box-shadow: 3px 3px 0 rgba(0,0,0,0.6);
+  background: var(--win-bg);
+}
+.win.open { display: flex; }
+
+/* ══════ resize handle ══════ */
+.resize-handle {
+  position: absolute; right: 0; bottom: 0;
+  width: 16px; height: 16px;
+  cursor: nwse-resize;
+  z-index: 5;
+  touch-action: none;
+  background:
+    linear-gradient(135deg,
+      transparent 0 38%, var(--bm) 38% 46%, transparent 46% 58%,
+      var(--bm) 58% 66%, transparent 66% 78%,
+      var(--bm) 78% 86%, transparent 86%);
+}
+
+.titlebar {
+  background: linear-gradient(90deg, var(--bar-off-a), var(--bar-off-b));
+  padding: 3px 4px 2px 6px;
+  display: flex; align-items: center; justify-content: space-between; gap: 4px;
+  flex-shrink: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+  touch-action: none;
+}
+.win.active .titlebar {
+  background: linear-gradient(90deg, var(--bar-a), var(--bar-b));
+}
+.tb-left { display: flex; align-items: center; gap: 5px; min-width: 0; overflow: hidden; }
+.tb-icon { font-size: 13px; flex-shrink: 0; }
+.tb-text {
+  font-family: var(--font-ui); font-size: 16px; color: #fff;
+  letter-spacing: 0.05em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tb-btns { display: flex; gap: 2px; flex-shrink: 0; }
+.wbtn {
+  width: 18px; height: 16px; background: var(--chrome);
+  border: 2px solid; border-color: var(--bl) var(--bm) var(--bm) var(--bl);
+  color: var(--text); font-family: var(--font-ui); font-size: 13px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  padding: 0; line-height: 1; flex-shrink: 0;
+}
+.wbtn:active { border-color: var(--bm) var(--bl) var(--bl) var(--bm); }
+
+.win-body {
+  border-top: 2px solid var(--bm);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 14px;
+  flex: 1;
+  min-height: 0; /* lets flex children actually scroll */
+}
+
+.win-body::-webkit-scrollbar { width: 12px; }
+.win-body::-webkit-scrollbar-track { background: var(--chrome); border-left: 1px solid var(--bm); }
+.win-body::-webkit-scrollbar-thumb { background: var(--chrome); border: 2px solid; border-color: var(--bl) var(--bm) var(--bm) var(--bl); }
+.win-body { scrollbar-width: thin; scrollbar-color: var(--bm) var(--chrome); }
+
+.addr {
+  background: #fff; border: 2px solid;
+  border-color: var(--bm) var(--bl) var(--bl) var(--bm);
+  padding: 2px 8px; font-size: 11px; color: var(--muted);
+  margin-bottom: 10px; display: flex; align-items: center; gap: 5px;
+}
+.addr span { color: var(--link); }
+
+/* shake for bad close attempts etc */
+@keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-4px)} 40%{transform:translateX(4px)} 60%{transform:translateX(-3px)} 80%{transform:translateX(3px)} }
+.shaking { animation: shake 0.25s ease; }
+
+/* ══════ about ══════ */
+.about-grid { display: grid; grid-template-columns: 150px 1fr; gap: 14px; align-items: start; }
+.pfp-wrap { display: flex; flex-direction: column; }
+.pfp-frame { border: 2px solid; border-color: var(--bm) var(--bl) var(--bl) var(--bm); background: #000; padding: 3px; line-height: 0; }
+.pfp-frame img { width: 100%; display: block; }
+.pfp-cap { font-family: var(--font-ui); font-size: 13px; color: var(--muted); text-align: center; padding: 3px 0; border-top: 2px solid var(--bm); margin-top: 3px; }
+
+/* ══════ music (album folder) ══════ */
+.album-grid {
+  display: flex; flex-wrap: wrap; gap: 18px; padding: 6px 2px;
+}
+.album-icon {
+  width: 100px; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  cursor: pointer; padding: 8px 4px; border: 1px dotted transparent;
+}
+.album-icon:hover { border-color: var(--bm); background: #eee; }
+.album-icon img {
+  width: 72px; height: 72px; object-fit: cover;
+  border: 2px solid; border-color: var(--bm) var(--bl) var(--bl) var(--bm);
+}
+.album-icon .album-icon-label { font-family: var(--font-ui); font-size: 14px; text-align: center; letter-spacing: 0.03em; }
+.album-icon .album-icon-meta { font-size: 10px; color: var(--muted); text-align: center; }
+
+/* ══════ mp3 player ══════ */
+.player-cover-row { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; }
+.player-cover { width: 72px; height: 72px; object-fit: cover; border: 2px solid; border-color: var(--bm) var(--bl) var(--bl) var(--bm); flex-shrink: 0; }
+.player-heading { font-family: var(--font-ui); font-size: 19px; letter-spacing: 0.04em; }
+.player-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.player-credit { font-size: 10px; color: var(--muted); margin-top: 3px; }
+.player-credit a { color: var(--link); }
+
+.tracklist { border: 2px solid; border-color: var(--bm) var(--bl) var(--bl) var(--bm); background: #fff; margin-bottom: 10px; }
+.track-row {
+  display: grid; grid-template-columns: 24px 1fr 44px;
+  gap: 6px; align-items: center; padding: 5px 8px;
+  cursor: pointer; border-bottom: 1px solid #eee; font-size: 12px;
+}
+.track-row:last-child { border-bottom: none; }
+.track-row:hover { background: #f5f5ff; }
+.track-row.playing { background: var(--link); color: #fff; }
+.track-row.playing .track-dur { color: #eee; }
+.track-row.unavailable { opacity: 0.4; cursor: default; }
+.track-num { color: var(--muted); font-size: 11px; }
+.track-row.playing .track-num { color: #eee; }
+.track-dur { font-size: 10px; color: var(--muted); text-align: right; }
+
+.player-transport {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--desktop); border: 2px solid; border-color: var(--bm) var(--bl) var(--bl) var(--bm);
+  padding: 8px;
+}
+.player-btn {
+  font-family: var(--font-ui); font-size: 16px;
+  background: var(--chrome); border: 2px solid; border-color: var(--bl) var(--bm) var(--bm) var(--bl);
+  padding: 1px 10px 0; cursor: pointer; color: var(--text); flex-shrink: 0;
+}
+.player-btn:active { border-color: var(--bm) var(--bl) var(--bl) var(--bm); }
+.player-now-playing {
+  flex: 1; min-width: 0; font-size: 11px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.player-progress-wrap { grid-column: 1 / -1; width: 100%; margin-top: 6px; }
+.player-progress-track { width: 100%; height: 6px; background: #fff; border: 1px solid var(--bm); }
+.player-progress-fill { height: 100%; width: 0%; background: var(--link); }
+
+/* ══════ comics ══════ */
+.comic-viewer { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.comic-img-wrap { width: 100%; border: 2px solid; border-color: var(--bm) var(--bl) var(--bl) var(--bm); background: #000; display: flex; align-items: center; justify-content: center; min-height: 100px; }
+.comic-img-wrap img { width: 100%; display: block; object-fit: contain; }
+.comic-nav { display: flex; align-items: center; gap: 12px; }
+.comic-btn, .search-btn {
+  font-family: var(--font-ui); font-size: 16px; letter-spacing: 0.05em;
+  background: var(--chrome); border: 2px solid; border-color: var(--bl) var(--bm) var(--bm) var(--bl);
+  padding: 1px 12px 0; cursor: pointer; color: var(--text);
+}
+.comic-btn:hover, .search-btn:hover { background: var(--link); color: #fff; border-color: var(--link); }
+.comic-btn:active, .search-btn:active { border-color: var(--bm) var(--bl) var(--bl) var(--bm); }
+.comic-btn:disabled { color: var(--muted); cursor: default; opacity: 0.5; }
+.comic-counter { font-family: var(--font-ui); font-size: 15px; color: var(--muted); min-width: 80px; text-align: center; }
+.comic-open-wrap { width: 100%; text-align: right; }
+.essay-open, .comic-open-wrap a {
+  font-family: var(--font-ui); font-size: 14px; letter-spacing: 0.05em;
+  background: var(--chrome); border: 2px solid; border-color: var(--bl) var(--bm) var(--bm) var(--bl);
+  padding: 1px 10px 0; display: inline-block; color: var(--text); text-decoration:none;
+}
+
+/* ══════ blog ══════ */
+.searchbar-wrap { display: flex; gap: 4px; margin-bottom: 10px; }
+.searchbar {
+  flex: 1; font-family: var(--font-body); font-size: 12px;
+  border: 2px solid; border-color: var(--bm) var(--bl) var(--bl) var(--bm);
+  padding: 3px 8px; background: #fff; color: var(--text); outline: none;
+}
+.searchbar:focus { border-color: var(--link); }
+.blog-post { padding: 8px 0; border-bottom: 2px solid #eee; }
+.blog-post:last-child { border-bottom: none; }
+.blog-post.hidden { display: none; }
+.post-date { font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+.post-title { font-family: var(--font-ui); font-size: 17px; letter-spacing: 0.04em; margin: 2px 0; }
+.post-body { font-size: 12px; color: var(--muted); }
+.no-results { font-size: 12px; color: var(--muted); padding: 8px 0; display: none; }
+
+/* ══════ essays ══════ */
+.essay-row { display: flex; flex-direction: column; gap: 4px; padding: 10px 0; border-bottom: 2px solid #eee; text-decoration: none; color: inherit; cursor: pointer; }
+.essay-row:last-child { border-bottom: none; }
+.essay-row:hover { background: #f5f5ff; }
+.essay-header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.essay-title { font-family: var(--font-ui); font-size: 18px; letter-spacing: 0.04em; color: var(--text); }
+.essay-date { font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; flex-shrink: 0; }
+.essay-desc { font-size: 12px; color: var(--muted); }
+.essay-row:hover .essay-open { background: var(--link); color: #fff; border-color: var(--link); }
+
+/* ══════ webwall ══════ */
+.button-wall {
+  position: relative;
+  overflow: hidden;
+  min-height: 210px;
+  padding: 8px;
+  background: var(--desktop);
+  border: 2px solid; border-color: var(--bm) var(--bl) var(--bl) var(--bm);
+}
+.btn-slot {
+  width: 88px; height: 31px;
+  position: absolute; left: 0; top: 0;
+  display: block;
+  touch-action: none;
+}
+.btn-slot img { width: 88px; height: 31px; display: block; image-rendering: pixelated; border: 1px solid rgba(0,0,0,0.15); pointer-events: none; }
+.wall-note { font-size: 11px; color: var(--muted); margin-top: 8px; }
+.wall-shake-hint { font-size: 10px; color: var(--muted); margin-bottom: 6px; font-style: italic; }
+
+/* hotlink badge — standalone, not part of the webwall physics pile */
+.hotlink-btn { width: 88px; height: 31px; display: block; flex-shrink: 0; }
+.hotlink-btn img { width: 88px; height: 31px; display: block; image-rendering: pixelated; border: 1px solid rgba(0,0,0,0.15); }
+.hotlink-code {
+  width: 220px; height: 50px; font-family: var(--font-body); font-size: 11px;
+  border: 2px solid; border-color: var(--bm) var(--bl) var(--bl) var(--bm);
+  padding: 4px 6px; color: var(--text); background: #fff; resize: none;
+}
+
+/* ══════ webrings ══════ */
+.webring-list { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 4px 0; }
+.webring-item { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+.webring-label { font-family: var(--font-ui); font-size: 14px; color: var(--muted); letter-spacing: 0.05em; }
+.webring-widget { display: flex; align-items: center; gap: 8px; }
+.otswebring { display: flex; align-items: center; gap: 6px; }
+
+/* ══════ comment widget overrides ══════ */
+#c_widget input, #c_widget textarea {
+  font-family: var(--font-body); font-size: 12px; border: 2px solid;
+  border-color: var(--bm) var(--bl) var(--bl) var(--bm); background: #fff; color: var(--text);
+  padding: 3px 6px; outline: none; width: 100%;
+}
+#c_widget input:focus, #c_widget textarea:focus { border-color: var(--link); }
+#c_widget button, #c_widget input[type="submit"] {
+  font-family: var(--font-ui); font-size: 16px; letter-spacing: 0.05em;
+  background: var(--chrome); border: 2px solid; border-color: var(--bl) var(--bm) var(--bm) var(--bl);
+  padding: 1px 14px 0; cursor: pointer; color: var(--text); width: auto;
+}
+#c_widget button:hover, #c_widget input[type="submit"]:hover { background: var(--link); color: #fff; border-color: var(--link); }
+#c_widget button:active, #c_widget input[type="submit"]:active { border-color: var(--bm) var(--bl) var(--bl) var(--bm); }
+
+/* ══════ taskbar + start menu ══════ */
+.taskbar {
+  position: fixed; left: 0; right: 0; bottom: 0; height: var(--taskbar-h);
+  background: var(--chrome);
+  border-top: 2px solid var(--bl);
+  display: flex; align-items: center; gap: 6px; padding: 3px 6px;
+  z-index: 10000;
+  font-family: var(--font-ui);
+}
+.start-btn {
+  display: flex; align-items: center; gap: 5px;
+  height: 100%; padding: 0 10px 0 6px;
+  background: var(--chrome); border: 2px solid; border-color: var(--bl) var(--bm) var(--bm) var(--bl);
+  cursor: pointer; font-size: 17px; letter-spacing: 0.04em; color: var(--text);
+}
+.start-btn:active, .start-btn.open { border-color: var(--bm) var(--bl) var(--bl) var(--bm); }
+.start-btn img { width: 22px; height: 22px; object-fit: cover; image-rendering: pixelated; border: 1px solid var(--bm); }
+.taskbar-sep { width: 2px; height: 26px; border-left: 1px solid var(--bm); border-right: 1px solid var(--bl); flex-shrink: 0; }
+.taskbar-wins { flex: 1; display: flex; gap: 4px; overflow: hidden; height: 100%; align-items: center; }
+.task-btn {
+  height: 100%; max-width: 170px; display: flex; align-items: center; gap: 5px;
+  padding: 0 8px; background: var(--chrome); border: 2px solid; border-color: var(--bl) var(--bm) var(--bm) var(--bl);
+  cursor: pointer; font-size: 15px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+.task-btn.active { border-color: var(--bm) var(--bl) var(--bl) var(--bm); background: #d8d4ff; }
+.taskbar-clock {
+  font-family: var(--font-ui); font-size: 16px; color: var(--text);
+  border: 2px solid; border-color: var(--bm) var(--bl) var(--bl) var(--bm);
+  padding: 2px 10px 0; height: 100%; display: flex; align-items: center; flex-shrink: 0;
+}
+
+.start-menu {
+  position: fixed; left: 4px; bottom: calc(var(--taskbar-h) + 4px);
+  width: 230px;
+  background: var(--chrome);
+  border: 2px solid; border-color: var(--bl) var(--bm) var(--bm) var(--bl);
+  box-shadow: 3px 3px 0 rgba(0,0,0,0.6);
+  display: none;
+  flex-direction: column;
+  padding: 4px;
+  z-index: 10001;
+  gap: 2px;
+}
+.start-menu.open { display: flex; }
+.start-menu-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 8px; cursor: pointer; font-family: var(--font-ui); font-size: 16px;
+  letter-spacing: 0.03em; color: var(--text); background: transparent; border: 2px solid transparent;
+}
+.start-menu-item:hover { background: var(--link); color: #fff; }
+.start-menu-item .sm-icon { width: 18px; text-align: center; font-size: 14px; }
+
+/* ══════ right-click context menu (webwall buttons) ══════ */
+.context-menu {
+  position: fixed;
+  width: 180px;
+  background: var(--chrome);
+  border: 2px solid; border-color: var(--bl) var(--bm) var(--bm) var(--bl);
+  box-shadow: 3px 3px 0 rgba(0,0,0,0.6);
+  display: none;
+  flex-direction: column;
+  padding: 4px;
+  z-index: 10002;
+  gap: 2px;
+}
+.context-menu.open { display: flex; }
+.context-menu-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 8px; cursor: pointer; font-family: var(--font-ui); font-size: 16px;
+  letter-spacing: 0.03em; color: var(--text); background: transparent; border: 2px solid transparent;
+}
+.context-menu-item:hover { background: var(--link); color: #fff; }
+
+/* focus outline for accessibility */
+.wbtn:focus-visible, .start-btn:focus-visible, .task-btn:focus-visible,
+.start-menu-item:focus-visible, .desktop-icon:focus-visible,
+.player-btn:focus-visible, .comic-btn:focus-visible, .search-btn:focus-visible {
+  outline: 2px solid #ffdd00; outline-offset: 1px;
+}
+</style>
+</head>
+<body>
+
+<div class="desktop" id="desktop">
+
+  <!-- ══════ desktop icons ══════ -->
+  <div class="desktop-icon" id="icon-about" style="left:20px; top:20px;" tabindex="0" role="button">
+    <img src="SS4.png" alt="About Me">
+    <span>About Me</span>
+  </div>
+  <div class="desktop-icon" id="icon-chat" style="left:20px; top:118px;" tabindex="0" role="button">
+    <img src="desktop-icons/chat-terminal.png" alt="Chat">
+    <span>Chat</span>
+  </div>
+  <div class="desktop-icon" id="icon-album-core-dump" style="left:20px; top:216px;" tabindex="0" role="button">
+    <img src="core-dump-media/AlbumCover1.webp" alt="Core Dump">
+    <span>Core Dump</span>
+  </div>
+  <div class="desktop-icon" id="icon-album-happy-haunting" style="left:20px; top:314px;" tabindex="0" role="button">
+    <img src="happy-haunting-media/AlbumCover1.webp" alt="Happy Haunting">
+    <span>Happy Haunting</span>
+  </div>
+  <div class="desktop-icon" id="icon-album-evol" style="left:20px; top:412px;" tabindex="0" role="button">
+    <img src="evol-media/EVOL.png" alt="Evol">
+    <span>Evol</span>
+  </div>
+  <a class="desktop-icon" id="icon-redpanda-ring" href="https://redpandaring.nekoweb.org/" target="_blank" rel="noopener" style="left:124px; top:20px;">
+    <img src="desktop-icons/redpanda-ring.jpg" alt="Red Panda Ring">
+    <span>Red Panda Ring</span>
+  </a>
+  <a class="desktop-icon" id="icon-bandcamp" href="https://redtailworks.bandcamp.com/" target="_blank" rel="noopener" style="left:124px; top:118px;">
+    <img src="desktop-icons/bandcamp.png" alt="Bandcamp">
+    <span>Bandcamp</span>
+  </a>
+  <a class="desktop-icon" id="icon-photography" href="https://www.redtailworks.photos/" target="_blank" rel="noopener" style="left:124px; top:216px;">
+    <img src="https://images-pw.pixieset.com/profile/7322531/b9a8ee1a54c077c826dde908108368e700009c6304f8f09fdb419415f86bf38f.png" alt="RedtailWorks Photography">
+    <span>Photography</span>
+  </a>
+  <a class="desktop-icon" id="icon-bluesky" href="https://bsky.app/profile/redtail-works.bsky.social" target="_blank" rel="noopener" style="left:124px; top:314px;">
+    <img src="desktop-icons/bsky2.png" alt="Bluesky">
+    <span>Bluesky</span>
+  </a>
+  <a class="desktop-icon" id="icon-spotify" href="https://open.spotify.com/artist/4na5FFSedDeX7emStXnXoI?si=ovC8Zm9UStSlkQyjnESVNw" target="_blank" rel="noopener" style="left:124px; top:412px;">
+    <img src="desktop-icons/spotify.png" alt="Spotify">
+    <span>Spotify</span>
+  </a>
+  <a class="desktop-icon" id="icon-ytmusic" href="https://music.youtube.com/channel/UCLnG_50KkR3jUGuYoc5zwoQ?si=rkl5Un6WwXE5M-sn" target="_blank" rel="noopener" style="left:124px; top:510px;">
+    <img src="desktop-icons/ytmusic.png" alt="YouTube Music">
+    <span>YT Music</span>
+  </a>
+
+  <!-- note to self: new window = copy a .win block below w/ unique id="win-yourid", then register it in APPS in the script at the bottom (id, title, icon, inStartMenu) -->
+
+  <!-- ══════ about ══════ -->
+  <div class="win" id="win-about" style="width:600px; height:555px;">
+    <div class="titlebar">
+      <div class="tb-left"><span class="tb-icon">👤</span><span class="tb-text">About — RedtailWorks</span></div>
+      <div class="tb-btns">
+        <button class="wbtn" data-action="minimize" title="Minimize">_</button>
+        <button class="wbtn" data-action="close" title="Close">×</button>
+      </div>
+    </div>
+    <div class="win-body">
+      <div class="addr">📂 <span>redtail.works/about</span></div>
+      <div class="about-grid">
+        <div class="pfp-wrap">
+          <div class="pfp-frame"><img src="SS4.png" alt="RedtailWorks"></div>
+          <div class="pfp-cap">RedtailWorks.exe</div>
+        </div>
+        <div>
+          <h2>Hello!</h2>
+          <p>I'm RedtailWorks — I'm an Oregon-based producer converting ADHD into audio using a mix of digital tools for your listening pleasure.</p>
+          <p>&nbsp;&nbsp;&nbsp;&nbsp;My journey into music started around 2011 at age 14, right when I was finding my footing in the furry fandom and discovering LapFox Trax. Dubstep was everywhere and the music I was finding in the community hit different, so I got my hands on a (totaly legal) copy of FL Studio and never looked back.</p>
+          <br>
+          <p>&nbsp;&nbsp;&nbsp;&nbsp;Describing my sound is something I genuinely can't do. I experiment across genres constantly and try to make sure no two albums sound the same, except maybe the seasonal stuff. What I make now has a lot more layering and genre blending than my early work did. I commission all my album art too, and rather than dictating what I want, I let the artist listen to the music first and create whatever it inspires in them. RedtailWorks isn't collaborative in the traditional sense, but the people around me, friends, other producers, and artists, shape it more than they probably realize.</p>
+          <br>
+          <p>&nbsp;&nbsp;&nbsp;&nbsp;Outside of music I'm into photography, writing, and apparently rebuilding my website on a regular basis. I have ADHD and jump between interests fast, which is honestly why music has stuck. I make it for fun, when I feel creative, with no pressure to be consistent. Most releases will be free. I'm not big on social media, so if you want to keep up, your best bet is right here, my Bandcamp, or YouTube at @RedtailWorks.</p>
+          <hr><br>
+          i am <a href="https://plasma.nekoweb.org" target="_blank">plasma</a>
+
+          <iframe scrolling="no" style="border: 0;width: 100%;height: 33px;" src="https://bandcamp.com/band_follow_button_classic/3119070675"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ hotlink ══════ -->
+  <div class="win" id="win-hotlink" style="width:420px; height:190px;">
+    <div class="titlebar">
+      <div class="tb-left"><span class="tb-icon">📋</span><span class="tb-text">Hotlink Me!</span></div>
+      <div class="tb-btns">
+        <button class="wbtn" data-action="minimize" title="Minimize">_</button>
+        <button class="wbtn" data-action="close" title="Close">×</button>
+      </div>
+    </div>
+    <div class="win-body">
+      <div class="addr">📂 <span>redtail.works/hotlink</span></div>
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <a class="hotlink-btn" href="https://www.redtail.works" target="_blank" title="RedtailWorks">
+          <img src="webwall-media/redtailglitter.gif" alt="RedtailWorks">
+        </a>
+        <textarea readonly onclick="this.select()" class="hotlink-code">&lt;a href="https://www.redtail.works" target="_blank"&gt;&lt;img src="https://www.redtail.works/webwall-media/redtailglitter.gif" alt="RedtailWorks"&gt;&lt;/a&gt;</textarea>
+        <p>Hot-link Me!</p>
+        <a rel="me" href="https://furs.social/@redtailworks">Mastodon</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ music ══════ -->
+  <div class="win" id="win-music" style="width:420px; height:340px;">
+    <div class="titlebar">
+      <div class="tb-left"><span class="tb-icon">💿</span><span class="tb-text">Music</span></div>
+      <div class="tb-btns">
+        <button class="wbtn" data-action="minimize" title="Minimize">_</button>
+        <button class="wbtn" data-action="close" title="Close">×</button>
+      </div>
+    </div>
+    <div class="win-body">
+      <div class="addr">📂 <span>redtail.works/music</span></div>
+      <!-- note to self: new album icon = copy a .album-icon div below + add matching entry to ALBUMS in the script -->
+      <div class="album-grid">
+        <div class="album-icon" data-album="core-dump" tabindex="0" role="button">
+          <img src="core-dump-media/AlbumCover1.webp" alt="Core Dump">
+          <div class="album-icon-label">Core Dump</div>
+          <div class="album-icon-meta">8 tracks</div>
+        </div>
+        <div class="album-icon" data-album="happy-haunting" tabindex="0" role="button">
+          <img src="happy-haunting-media/AlbumCover1.webp" alt="Happy Haunting">
+          <div class="album-icon-label">Happy Haunting</div>
+          <div class="album-icon-meta">10 tracks</div>
+        </div>
+        <div class="album-icon" data-album="evol" tabindex="0" role="button">
+          <img src="evol-media/EVOL.png" alt="Evol">
+          <div class="album-icon-label">Evol</div>
+          <div class="album-icon-meta">16 tracks</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ core dump player (tracklist/transport built by buildPlayer() from ALBUMS['core-dump']) ══════ -->
+  <div class="win" id="win-player-core-dump" style="width:380px; height:475px;">
+    <div class="titlebar">
+      <div class="tb-left"><span class="tb-icon">🎧</span><span class="tb-text">Core Dump — Player</span></div>
+      <div class="tb-btns">
+        <button class="wbtn" data-action="minimize" title="Minimize">_</button>
+        <button class="wbtn" data-action="close" title="Close">×</button>
+      </div>
+    </div>
+    <div class="win-body">
+      <div class="player-cover-row">
+        <img class="player-cover" src="core-dump-media/AlbumCover1.webp" alt="Core Dump">
+        <div>
+          <div class="player-heading">Core Dump</div>
+          <div class="player-sub">2026 · breakcore / trap / speedcore</div>
+        </div>
+      </div>
+      <div class="tracklist" data-tracklist="core-dump"></div>
+      <div class="player-transport" data-transport="core-dump">
+        <button class="player-btn" data-player-action="prev">⏮</button>
+        <button class="player-btn" data-player-action="toggle">▶</button>
+        <button class="player-btn" data-player-action="next">⏭</button>
+        <div class="player-now-playing" data-now-playing>Nothing playing</div>
+        <div class="player-progress-wrap">
+          <div class="player-progress-track"><div class="player-progress-fill" data-progress-fill></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ happy haunting player ══════ -->
+  <div class="win" id="win-player-happy-haunting" style="width:380px; height:515px;">
+    <div class="titlebar">
+      <div class="tb-left"><span class="tb-icon">🎧</span><span class="tb-text">Happy Haunting — Player</span></div>
+      <div class="tb-btns">
+        <button class="wbtn" data-action="minimize" title="Minimize">_</button>
+        <button class="wbtn" data-action="close" title="Close">×</button>
+      </div>
+    </div>
+    <div class="win-body">
+      <div class="player-cover-row">
+        <img class="player-cover" src="happy-haunting-media/AlbumCover1.webp" alt="Happy Haunting">
+        <div>
+          <div class="player-heading">Happy Haunting</div>
+          <div class="player-sub">2026 · spooky / breakcore / house</div>
+        </div>
+      </div>
+      <div class="tracklist" data-tracklist="happy-haunting"></div>
+      <div class="player-transport" data-transport="happy-haunting">
+        <button class="player-btn" data-player-action="prev">⏮</button>
+        <button class="player-btn" data-player-action="toggle">▶</button>
+        <button class="player-btn" data-player-action="next">⏭</button>
+        <div class="player-now-playing" data-now-playing>Nothing playing</div>
+        <div class="player-progress-wrap">
+          <div class="player-progress-track"><div class="player-progress-fill" data-progress-fill></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ evol player ══════ -->
+  <div class="win" id="win-player-evol" style="width:380px; height:600px;">
+    <div class="titlebar">
+      <div class="tb-left"><span class="tb-icon">🎧</span><span class="tb-text">Evol — Player</span></div>
+      <div class="tb-btns">
+        <button class="wbtn" data-action="minimize" title="Minimize">_</button>
+        <button class="wbtn" data-action="close" title="Close">×</button>
+      </div>
+    </div>
+    <div class="win-body">
+      <div class="player-cover-row">
+        <img class="player-cover" src="evol-media/EVOL.png" alt="Evol">
+        <div>
+          <div class="player-heading">Evol</div>
+          <div class="player-sub">2026</div>
+          <div class="player-credit">Art by <a href="https://linktr.ee/gatopepaz" target="_blank">GatoPepaz</a></div>
+        </div>
+      </div>
+      <div class="tracklist" data-tracklist="evol"></div>
+      <div class="player-transport" data-transport="evol">
+        <button class="player-btn" data-player-action="prev">⏮</button>
+        <button class="player-btn" data-player-action="toggle">▶</button>
+        <button class="player-btn" data-player-action="next">⏭</button>
+        <div class="player-now-playing" data-now-playing>Nothing playing</div>
+        <div class="player-progress-wrap">
+          <div class="player-progress-track"><div class="player-progress-fill" data-progress-fill></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ comics ══════ -->
+  <div class="win" id="win-comics" style="width:420px; height:655px;">
+    <div class="titlebar">
+      <div class="tb-left"><span class="tb-icon">🗒️</span><span class="tb-text">My Comic</span></div>
+      <div class="tb-btns">
+        <button class="wbtn" data-action="minimize" title="Minimize">_</button>
+        <button class="wbtn" data-action="close" title="Close">×</button>
+      </div>
+    </div>
+    <div class="win-body">
+      <div class="addr">📂 <span>redtail.works/comics</span></div>
+      <div class="comic-viewer">
+        <div class="comic-img-wrap"><img id="comic-img" src="" alt="Comic"></div>
+        <div class="comic-nav">
+          <button class="comic-btn" id="comic-prev">◀ Prev</button>
+          <span class="comic-counter" id="comic-counter"></span>
+          <button class="comic-btn" id="comic-next">Next ▶</button>
+        </div>
+        <div class="comic-open-wrap"><a id="comic-open" href="#" target="_blank">⤢ Open Full Size</a></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ blog ══════ -->
+  <div class="win" id="win-blog" style="width:480px; height:595px;">
+    <div class="titlebar">
+      <div class="tb-left"><span class="tb-icon">📝</span><span class="tb-text">Blog</span></div>
+      <div class="tb-btns">
+        <button class="wbtn" data-action="minimize" title="Minimize">_</button>
+        <button class="wbtn" data-action="close" title="Close">×</button>
+      </div>
+    </div>
+    <div class="win-body">
+      <div class="addr">📂 <span>redtail.works/blog</span></div>
+      <div class="searchbar-wrap">
+        <input class="searchbar" id="blog-search" type="text" placeholder="search posts...">
+        <button class="search-btn" id="blog-search-btn">Find</button>
+      </div>
+      <div id="blog-posts">
+        <!-- note to self: new post = copy a .blog-post block, set data-text (lowercase, searchable) + date + title + body -->
+        <div class="blog-post" data-text="Dropping Classes :(">
+          <div class="post-date">2026-04-17</div>
+          <div class="post-title">Dropping Classes :(</div>
+          <div class="post-body">I love College. I feel so good returning to school and expanding my knowledge! However, with my crippling AUDHD and ballincing full time school with my relationship, hobbies, and chores, going to college full time is a near impossible feat :( <br> So regrettably, I have had to cut back the number of classes I take each term. This change has also disqualified me from any income assistance through my GI bill... <br> Durning the rest of spring, and moving into summer term, I will mostly likely only be taking 1 class while finding work. <br><b>Now for the part I dont want to say</b><br>Becuse me and my husband are both dirt poor and live in a camper I had to build myself, and because even with us both working we will still be struggle bussin it... I would like to, despite it making me feel like a mooch, ask that you please check out my bandcamp. If you like any of the music please purchas something. I set the prices of everything to $10, with $4 being the standard. As albums get older tey will move to "Pay what you want." <br>I could really really use the extra support &lt;3 Though, I am sorry I have to ask :( </div>
+        </div>
+        <div class="blog-post" data-text="Making Comics Now!">
+          <div class="post-date">2026-04-07</div>
+          <div class="post-title">Making Comics Now!</div>
+          <div class="post-body">I'm taking a class on comics and it has inspired me to make my own! I can't draw so I'm making digital collages. Thank got for transformative works laws!<br>Anyway, dont expect regular uploads as just like my music and writing, the ADHD determines when I make things :(</div>
+        </div>
+        <div class="blog-post" data-text="Ordered a New Midi Controller">
+          <div class="post-date">2026-04-02</div>
+          <div class="post-title">Ordered a New Midi Controller</div>
+          <div class="post-body">Decided to finally get some new gear! (I have been making everything in ableton with just mouse and keyboard) So I picked up an Akai Professional MPK Mini MK3!<br>But now I want the Sonicware Lofi-12 XT so I guess I have a new goal to save up for!<br>In the next few months I should be able to start live streaming music production on YT so hopefully that will help me make some money for more cool equiptment!</div>
+        </div>
+        <div class="blog-post" data-text="First Day of Spring Term + Other Things">
+          <div class="post-date">2026-03-30</div>
+          <div class="post-title">First Day of Spring Term + Other Things</div>
+          <div class="post-body">First day of spring term and i'm already fed up! My History Prof is requiring the use of GPT in class which is stupid and dumb!<br>I got my first sale on BandCamp through so that was cool! And i set yp the red panda webring!<br>Added more friends to the WebWall so make sure to go check out their sites!</div>
+        </div>
+        <div class="blog-post" data-text="welcome first post hello">
+          <div class="post-date">2026-03-28</div>
+          <div class="post-title">Welcome to the site!</div>
+          <div class="post-body">First post. Still getting everything set up. More soon.</div>
+        </div>
+        <div class="blog-post" data-text="core dump release album out now">
+          <div class="post-date">2026-03-28</div>
+          <div class="post-title">Core Dump is out now</div>
+          <div class="post-body">My new album Core Dump is live on <a href="https://redtailworks.bandcamp.com" target="_blank">Bandcamp</a>. Go listen!</div>
+        </div>
+      </div>
+      <div class="no-results" id="no-results">No posts found.</div>
+    </div>
+  </div>
+
+  <!-- ══════ essays ══════ -->
+  <div class="win" id="win-essays" style="width:460px; height:415px;">
+    <div class="titlebar">
+      <div class="tb-left"><span class="tb-icon">📄</span><span class="tb-text">Essays</span></div>
+      <div class="tb-btns">
+        <button class="wbtn" data-action="minimize" title="Minimize">_</button>
+        <button class="wbtn" data-action="close" title="Close">×</button>
+      </div>
+    </div>
+    <div class="win-body">
+      <div class="addr">📂 <span>redtail.works/essays</span></div>
+      <!-- note to self: new essay = copy an .essay-row block, set href to the pdf, plus title/date/desc -->
+      <a class="essay-row" href="essays/Trusting Students With Difficult Books_ Why School Book Bans Weaken Critical Thinking.pdf" target="_blank">
+        <div class="essay-header">
+          <span class="essay-title">Trusting Students With Difficult Books</span>
+          <span class="essay-date">2/24/2026</span>
+        </div>
+        <div class="essay-desc">An argument aginst the banning of books</div>
+        <span class="essay-open">▶ Open PDF</span>
+      </a>
+      <a class="essay-row" href="essays/Starting College Later in Life.pdf" target="_blank">
+        <div class="essay-header">
+          <span class="essay-title">Starting College Later in Life</span>
+          <span class="essay-date">1/26/2026</span>
+        </div>
+        <div class="essay-desc">Interview with an older college student & why starting college later is okay.</div>
+        <span class="essay-open">▶ Open PDF</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- ══════ webwall ══════ -->
+  <div class="win" id="win-webwall" style="width:580px; height:400px;">
+    <div class="titlebar">
+      <div class="tb-left"><span class="tb-icon">🌐</span><span class="tb-text">Webwall — 88×31</span></div>
+      <div class="tb-btns">
+        <button class="wbtn" data-action="minimize" title="Minimize">_</button>
+        <button class="wbtn" data-action="close" title="Close">×</button>
+      </div>
+    </div>
+    <div class="win-body">
+      <div class="addr">📂 <span>redtail.works/webwall</span></div>
+      <p class="wall-shake-hint">🔊 shake this window to knock the buttons loose</p>
+      <div class="button-wall" id="button-wall">
+        <!-- note to self: new button = <a class="btn-slot" href="URL" target="_blank" title="Site Name"><img src="webwall-media/filename.gif" alt="Site Name"></a> — physics picks it up automatically -->
+        <a class="btn-slot" href="https://ferngrove.nekoweb.org/pages/home" target="_blank" title="littleBIGuniverse"><img src="webwall-media/protobutton.gif" alt="littlebiguniverse"></a>
+        <a class="btn-slot" href="https://plasma.nekoweb.org/" target="_blank" title="PLASMA"><img src="webwall-media/plasmanow.gif" alt="PLASMA!"></a>
+        <a class="btn-slot" href="https://thumtacka.nekoweb.org/main-sep.html" target="_blank" title="Thumbtack"><img src="webwall-media/booton.gif" alt="Thumtacka"></a>
+        <a class="btn-slot" href="https://midnight-heart.nekoweb.org/" target="_blank" title="Middy'sWorkshop"><img src="webwall-media/Midnight_Heart Button.gif" alt="Middy'sWorkshop"></a>
+        <a class="btn-slot" href="https://glassy-website.nekoweb.org/" target="_blank" title="glassjungle"><img src="webwall-media/ButtonGlass.png" alt="GlassJungle"></a>
+        <a class="btn-slot" href="https://yiothepanda.neocities.org/" target="_blank" title="Yio's Digital Lab"><img src="https://yiothepanda.neocities.org/yiotheredpanda.gif" alt="Yio's Digital Lab"></a>
+        <a class="btn-slot" href="https://sillywah.cc/" target="_blank" title="Silly Wah"><img src="https://sillywah.cc/img/button/sillywah.gif" alt="Silly Wah"></a>
+        <a class="btn-slot" href="https://matcha.nekoweb.org/" target="_blank" title="MATCHA.EXE"><img src="https://matcha.nekoweb.org/resources/buttons/Matcha%20Nekoweb%20Button.gif" alt="MATCHA.EXE"></a>
+        <a class="btn-slot" href="https://abode.nekoweb.org/home.html?v=1.0.1" target="_blank" title="abode"><img src="https://raw.githubusercontent.com/rarkus/i/refs/heads/main/gif/abodebutton.gif" alt="abode"></a>
+        <a class="btn-slot" href="https://jembles.nekoweb.org/links.html" target="_blank" title="jembles notronbo "><img src="https://jembles.nekoweb.org/img/jemblesbutton1.gif" alt="jembles notronbo "></a>
+        <a class="btn-slot" href="https://oddangelmusic.nekoweb.org/" target="_blank" title="ODD.ANGEL.MUSIC"><img src="https://oddangelmusic.nekoweb.org/images/logo.gif" alt="ODD.ANGEL.MUSIC"></a>
+        <a class="btn-slot" href="https://brooklynights.nekoweb.org/" target="_blank" title="brooklynights"><img src="https://brooklynights.nekoweb.org/content/buttons/own/gakvubut.gif" alt="brooklynights"></a>
+        <a class="btn-slot" href="https://webtiles.kicya.net/#www.redtail.works" target="_blank" title="WebTiles"><img src="webwall-media/webtile.png" alt="WebTiles"></a>
+        <a class="btn-slot" href="https://codexarchonic.nekoweb.org/" target="_blank" title="Codex Archonic"><img src="https://codexarchonic.nekoweb.org/banner.gif" alt="Codex Archonic"></a>
+        <a class="btn-slot" href="https://kuurp.nekoweb.org/" target="_blank" title="Kuurp's site"><img src="https://kuurp.nekoweb.org/assets/button.png" alt="Kuurp's site"></a>
+        <a class="btn-slot" href="https://virtualobserver.moe/home" target="_blank" title="virtualobserver"><img src="webwall-media/VirtualObserver.png" alt="virtualobserver.moe"></a>
+        <a class="btn-slot" href="https://goatpup.party/" target="_blank" title="goatpup.party"><img src="webwall-media/goatgirlclover.gif" alt="goatpup.party"></a>
+        <a class="btn-slot" href="https://gormy.net/" target="_blank" title="gormy.net"><img src="webwall-media/Gormy.gif" alt="gormy.net"></a>
+        <a class="btn-slot" href="https://bottledf0x.newgrounds.com/" target="_blank" title="BottledFox (newgrounds)"><img src="webwall-media/bottledfox.gif" alt="NewGrounds"></a>
+        <a class="btn-slot" href="https://redtailworks.bandcamp.com/" target="_blank" title="RedtailWorks"><img src="webwall-media/redtailglitter.gif" alt="RedtailWorks"></a>
+      </div>
+      <p class="wall-note">Want your button here? Send a 88×31 to <a href="mailto:">itsme@redtail.works</a></p>
+    </div>
+  </div>
+
+  <!-- ══════ webrings ══════ -->
+  <div class="win" id="win-webrings" style="width:460px; height:375px;">
+    <div class="titlebar">
+      <div class="tb-left"><span class="tb-icon">🔗</span><span class="tb-text">Webrings</span></div>
+      <div class="tb-btns">
+        <button class="wbtn" data-action="minimize" title="Minimize">_</button>
+        <button class="wbtn" data-action="close" title="Close">×</button>
+      </div>
+    </div>
+    <div class="win-body">
+      <div class="addr">📂 <span>redtail.works/webrings</span></div>
+      <div class="webring-list">
+        <!-- note to self: new ring = paste its HTML widget inside a .webring-item div -->
+        <div class="webring-item">
+          <div class="webring-label">Red Panda Web Ring</div>
+          <div class="webring-widget">
+            <a href="https://redpandaring.nekoweb.org/random.html">&lt;&lt;&lt;</a>
+            <a href="https://redpandaring.nekoweb.org/"><img src="https://redpandaring.nekoweb.org/redpandaring88x31.gif" width="88" height="31" alt="Red Panda Ring"></a>
+            <a href="https://redpandaring.nekoweb.org/random.html">&gt;&gt;&gt;</a>
+          </div>
+        </div>
+        <div class="webring-item">
+          <div class="webring-label">A.M.I.G.A.</div>
+          <div class="webring-widget">
+            <div id='amiga'>
+              <script type="text/javascript" src="https://nicois.gay/amiga/onionring-variables.js"></script>
+              <script type="text/javascript" src="https://nicois.gay/amiga/onionring-widget.js"></script>
+            </div>
+          </div>
+        </div>
+        <div class="webring-item">
+          <div class="webring-label">Musicians Webring</div>
+          <div class="webring-widget">
+            <div id='musicians-ring'>
+              <script type="text/javascript" src="https://lydels.neocities.org/musicianswebring/onionring-variables.js"></script>
+              <script type="text/javascript" src="https://lydels.neocities.org/musicianswebring/onionring-widget.js"></script>
+            </div>
+          </div>
+        </div>
+        <div class="webring-item">
+          <div class="webring-label">Soweli Ring</div>
+          <div class="webring-widget">
+            <p id="soweliring" style="display: flex; justify-content: space-between; width: 16em;"><a href="https://thedressedmolerat.github.io/webring?name=Redtail&to=skipprevious">⇇</a> <a href="https://thedressedmolerat.github.io/webring?name=Redtail&to=previous">&lt;</a> <a href="https://thedressedmolerat.github.io/webring?to=random">⇅</a> <a href="https://thedressedmolerat.github.io/webring">soweli ring</a> <a href="https://thedressedmolerat.github.io/webring?name=Redtail&to=next">&gt;</a> <a href="https://thedressedmolerat.github.io/webring?name=Redtail&to=skipnext">⇉</a></p>
+          </div>
+        </div>
+        <div class="otswebring">
+          <a href="https://webring.obeythesystem.com/page?=previous" rel="nofollow">&lt;</a>
+          <a href="https://webring.obeythesystem.com/" rel="nofollow"><img style="vertical-align: middle;" src="https://webring.obeythesystem.com/ots_webring_button_1.gif" alt="OTS Webring Button"></a>
+          <a href="https://webring.obeythesystem.com/page?=next" rel="nofollow">&gt;</a>
+        </div>
+        <div class="webring-item">
+          <div class="webring-label">Retronaught Webring</div>
+          <div class="webring-widget">
+            <a href='https://webring.dinhe.net/prev/https://www.redtail.works/'>Previous</a>
+            · <a href="https://webring.dinhe.net/"><img src="retronaught.png" alt="Retronaut Webring" width="88" height="31" style="vertical-align:middle;"></a> ·
+            <a href='https://webring.dinhe.net/next/https://www.redtail.works/'>Next</a>
+          </div>
+        </div>
+        <div class="webring-item">
+          <div class="webring-label">Transing the Internet!</div>
+          <div class="webring-widget"><script src="https://transring.neocities.org/ring.js" data-widget="nb"></script></div>
+        </div>
+        <div class="webring-item">
+          <div class="webring-label">Hotline Webring</div>
+          <div class="webring-widget">
+            <a href="https://hotlinewebring.club/RTW/previous">← prev</a>
+            · <a href="https://hotlinewebring.club/"><img src="hotline.png" alt="Hotline Webring" width="88" height="31" style="vertical-align:middle;"></a> ·
+            <a href="https://hotlinewebring.club/RTW/next">next →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ chat ══════ -->
+  <div class="win" id="win-chat" style="width:460px; height:595px;">
+    <div class="titlebar">
+      <div class="tb-left"><span class="tb-icon">💬</span><span class="tb-text">Chat</span></div>
+      <div class="tb-btns">
+        <button class="wbtn" data-action="minimize" title="Minimize">_</button>
+        <button class="wbtn" data-action="close" title="Close">×</button>
+      </div>
+    </div>
+    <div class="win-body">
+      <div class="addr">📂 <span>redtail.works/chat</span></div>
+      <div id="c_widget"></div>
+    </div>
+  </div>
+
+</div><!-- /.desktop -->
+
+<!-- ══════ taskbar ══════ -->
+<div class="taskbar">
+  <button class="start-btn" id="start-btn">
+    <img src="redtailCrop.png" alt="">
+    Start
+  </button>
+  <div class="taskbar-sep"></div>
+  <div class="taskbar-wins" id="taskbar-wins"></div>
+  <div class="taskbar-clock" id="taskbar-clock">--:--</div>
+</div>
+
+<div class="start-menu" id="start-menu"></div>
+<div class="context-menu" id="context-menu"></div>
+
+<!-- comment widget mounts synchronously into #c_widget, needs to be pre-rendered above -->
+<script src="comment-widget.js"></script>
+
+<!-- Matter.js — MIT licensed 2D physics engine, used for the webwall shake effect -->
+<script src="https://cdn.jsdelivr.net/npm/matter-js@0.20.0/build/matter.min.js"></script>
+
+<script>
+/* ══════ desktop engine ══════ */
+
+// ══════ app registry ══════
+// anything with inStartMenu:true shows in the Start Menu. add new windows here (see note above the .win blocks)
+const APPS = [
+  { id: 'about',     title: 'About — RedtailWorks',        icon: '👤', inStartMenu: true },
+  { id: 'hotlink',   title: 'Hotlink Me!',                 icon: '📋', inStartMenu: true },
+  { id: 'music',     title: 'Music',                       icon: '💿', inStartMenu: true },
+  { id: 'comics',    title: 'My Comic',                    icon: '🗒️', inStartMenu: true },
+  { id: 'blog',      title: 'Blog',                        icon: '📝', inStartMenu: true },
+  { id: 'essays',    title: 'Essays',                      icon: '📄', inStartMenu: true },
+  { id: 'webwall',   title: 'Webwall',                     icon: '🌐', inStartMenu: true },
+  { id: 'webrings',  title: 'Webrings',                    icon: '🔗', inStartMenu: true },
+  { id: 'chat',      title: 'Chat',                        icon: '💬', inStartMenu: true },
+  { id: 'player-core-dump',      title: 'Core Dump — Player',      icon: '🎧', inStartMenu: false },
+  { id: 'player-happy-haunting', title: 'Happy Haunting — Player', icon: '🎧', inStartMenu: false },
+  { id: 'player-evol',           title: 'Evol — Player',           icon: '🎧', inStartMenu: false },
+];
+
+const winState = {}; // id -> { open: bool, minimized: bool, el, taskBtn }
+let zTop = 10;
+let cascadeCount = 0;
+let activeId = null;
+
+function $(sel, root) { return (root || document).querySelector(sel); }
+function $all(sel, root) { return Array.from((root || document).querySelectorAll(sel)); }
+
+function initWindow(app) {
+  const el = document.getElementById('win-' + app.id);
+  if (!el) return;
+  winState[app.id] = { open: false, minimized: false, el, taskBtn: null };
+
+  // titlebar drag
+  const titlebar = $('.titlebar', el);
+  titlebar.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('.wbtn')) return; // let buttons handle their own click
+    focusWindow(app.id);
+    startDrag(e, el);
+  });
+
+  // bring to front on any interaction with the window body too
+  el.addEventListener('pointerdown', () => focusWindow(app.id));
+
+  // minimize / close buttons
+  $all('.wbtn', titlebar).forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const action = btn.dataset.action;
+      if (action === 'close') {
+        // easter egg: closing webwall spills the buttons onto the desktop instead of just hiding
+        if (app.id === 'webwall') releaseButtonsOntoDesktop();
+        else closeWindow(app.id);
+      }
+      if (action === 'minimize') minimizeWindow(app.id);
+    });
+  });
+
+  // resize handle (bottom-right corner grip)
+  const handle = document.createElement('div');
+  handle.className = 'resize-handle';
+  handle.title = 'Drag to resize';
+  el.appendChild(handle);
+  handle.addEventListener('pointerdown', (e) => {
+    e.stopPropagation();
+    focusWindow(app.id);
+    startResize(e, el, handle);
+  });
+}
+
+function startDrag(e, el) {
+  const startX = e.clientX, startY = e.clientY;
+  const startLeft = parseInt(el.style.left || '0', 10);
+  const startTop = parseInt(el.style.top || '0', 10);
+  const titlebar = $('.titlebar', el);
+  titlebar.setPointerCapture(e.pointerId);
+
+  // windows can hook into their own drag gesture (e.g. webwall shake) via el._onDragStart/_onDragMove
+  if (el._onDragStart) el._onDragStart(e);
+
+  function onMove(ev) {
+    const dx = ev.clientX - startX;
+    const dy = ev.clientY - startY;
+    el.style.left = Math.max(0, startLeft + dx) + 'px';
+    el.style.top = Math.max(0, startTop + dy) + 'px';
+    if (el._onDragMove) el._onDragMove(ev);
+  }
+  function onUp(ev) {
+    titlebar.removeEventListener('pointermove', onMove);
+    titlebar.removeEventListener('pointerup', onUp);
+    titlebar.releasePointerCapture(ev.pointerId);
+  }
+  titlebar.addEventListener('pointermove', onMove);
+  titlebar.addEventListener('pointerup', onUp);
+}
+
+function startResize(e, el, handle) {
+  const startX = e.clientX, startY = e.clientY;
+  const startW = el.offsetWidth, startH = el.offsetHeight;
+  handle.setPointerCapture(e.pointerId);
+
+  function onMove(ev) {
+    const dw = ev.clientX - startX;
+    const dh = ev.clientY - startY;
+    el.style.width = Math.max(260, startW + dw) + 'px';
+    el.style.height = Math.max(160, startH + dh) + 'px';
+  }
+  function onUp(ev) {
+    handle.removeEventListener('pointermove', onMove);
+    handle.removeEventListener('pointerup', onUp);
+    handle.releasePointerCapture(ev.pointerId);
+  }
+  handle.addEventListener('pointermove', onMove);
+  handle.addEventListener('pointerup', onUp);
+}
+
+function cascadePosition(el) {
+  if (el.style.left && el.style.top) return; // already positioned once
+  const col = cascadeCount % 8;
+  el.style.left = (120 + col * 34) + 'px';
+  el.style.top = (60 + col * 30) + 'px';
+  cascadeCount++;
+}
+
+function openWindow(id) {
+  const s = winState[id];
+  if (!s) return;
+  if (id === 'webwall' && wallReleased) resetButtonsIntoWindow();
+  cascadePosition(s.el);
+  s.el.classList.add('open');
+  s.open = true;
+  s.minimized = false;
+  ensureTaskButton(id);
+  focusWindow(id);
+}
+
+function closeWindow(id) {
+  const s = winState[id];
+  if (!s) return;
+  s.el.classList.remove('open');
+  s.open = false;
+  s.minimized = false;
+  if (s.taskBtn) { s.taskBtn.remove(); s.taskBtn = null; }
+  if (activeId === id) activeId = null;
+  updateActiveStyling();
+}
+
+function minimizeWindow(id) {
+  const s = winState[id];
+  if (!s) return;
+  s.el.classList.remove('open');
+  s.minimized = true;
+  if (activeId === id) activeId = null;
+  updateActiveStyling();
+  updateTaskButtonState(id);
+}
+
+function focusWindow(id) {
+  const s = winState[id];
+  if (!s || !s.open) return;
+  s.el.style.zIndex = ++zTop;
+  activeId = id;
+  updateActiveStyling();
+  updateTaskButtonState(id);
+}
+
+function toggleFromTaskbar(id) {
+  const s = winState[id];
+  if (!s) return;
+  if (s.minimized || !s.open) {
+    if (!s.open) openWindow(id); else { s.el.classList.add('open'); s.minimized = false; focusWindow(id); }
+  } else if (activeId === id) {
+    minimizeWindow(id);
+  } else {
+    focusWindow(id);
+  }
+}
+
+function updateActiveStyling() {
+  APPS.forEach(app => {
+    const s = winState[app.id];
+    if (!s) return;
+    s.el.classList.toggle('active', app.id === activeId);
+  });
+}
+
+function ensureTaskButton(id) {
+  const s = winState[id];
+  if (s.taskBtn) return;
+  const app = APPS.find(a => a.id === id);
+  const btn = document.createElement('button');
+  btn.className = 'task-btn';
+  btn.innerHTML = '<span>' + app.icon + '</span><span>' + app.title + '</span>';
+  btn.addEventListener('click', () => toggleFromTaskbar(id));
+  $('#taskbar-wins').appendChild(btn);
+  s.taskBtn = btn;
+}
+
+function updateTaskButtonState(id) {
+  const s = winState[id];
+  if (!s || !s.taskBtn) return;
+  s.taskBtn.classList.toggle('active', activeId === id);
+}
+
+// ══════ start menu ══════
+function buildStartMenu() {
+  const menu = $('#start-menu');
+  APPS.filter(a => a.inStartMenu).forEach(app => {
+    const item = document.createElement('div');
+    item.className = 'start-menu-item';
+    item.tabIndex = 0;
+    item.innerHTML = '<span class="sm-icon">' + app.icon + '</span><span>' + app.title + '</span>';
+    item.addEventListener('click', () => {
+      const s = winState[app.id];
+      if (s.open && !s.minimized) { focusWindow(app.id); }
+      else if (s.minimized) { s.el.classList.add('open'); s.minimized = false; focusWindow(app.id); }
+      else { openWindow(app.id); }
+      closeStartMenu();
+    });
+    menu.appendChild(item);
+  });
+}
+
+function openStartMenu() { $('#start-menu').classList.add('open'); $('#start-btn').classList.add('open'); }
+function closeStartMenu() { $('#start-menu').classList.remove('open'); $('#start-btn').classList.remove('open'); }
+
+$('#start-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  if ($('#start-menu').classList.contains('open')) closeStartMenu(); else openStartMenu();
+});
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#start-menu') && !e.target.closest('#start-btn')) closeStartMenu();
+});
+
+// ══════ clock ══════
+function tickClock() {
+  const d = new Date();
+  let h = d.getHours();
+  const m = String(d.getMinutes()).padStart(2, '0');
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12; if (h === 0) h = 12;
+  $('#taskbar-clock').textContent = h + ':' + m + ' ' + ampm;
+}
+tickClock();
+setInterval(tickClock, 15000);
+
+// ══════ desktop icons ══════
+function wireDesktopIcon(elId, appId) {
+  const icon = document.getElementById(elId);
+  if (!icon) return;
+  const activate = () => {
+    const s = winState[appId];
+    if (s.open && !s.minimized) focusWindow(appId);
+    else if (s.minimized) { s.el.classList.add('open'); s.minimized = false; focusWindow(appId); }
+    else openWindow(appId);
+  };
+  icon.addEventListener('click', activate);
+  icon.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); } });
+}
+
+// ══════ comics ══════
+const COMIC_TOTAL = 1; // change to however many you have
+let comicCurrent = COMIC_TOTAL;
+
+function comicLoad(n) {
+  comicCurrent = n;
+  const src = 'comics/comic' + n + '.png';
+  $('#comic-img').src = src;
+  $('#comic-open').href = src;
+  $('#comic-counter').textContent = '#' + n + ' / ' + COMIC_TOTAL;
+  $('#comic-prev').disabled = n <= 1;
+  $('#comic-next').disabled = n >= COMIC_TOTAL;
+}
+function comicNav(dir) {
+  const next = comicCurrent + dir;
+  if (next >= 1 && next <= COMIC_TOTAL) comicLoad(next);
+}
+$('#comic-prev').addEventListener('click', () => comicNav(-1));
+$('#comic-next').addEventListener('click', () => comicNav(1));
+
+// ══════ blog search ══════
+function filterBlog() {
+  const q = $('#blog-search').value.toLowerCase().trim();
+  const posts = $all('.blog-post');
+  let visible = 0;
+  posts.forEach(p => {
+    const text = (p.dataset.text || '') + ' ' + p.textContent.toLowerCase();
+    const show = !q || text.toLowerCase().includes(q);
+    p.classList.toggle('hidden', !show);
+    if (show) visible++;
+  });
+  $('#no-results').style.display = visible === 0 ? 'block' : 'none';
+}
+$('#blog-search').addEventListener('input', filterBlog);
+$('#blog-search-btn').addEventListener('click', filterBlog);
+
+// ══════ music / mp3 player ══════
+// note to self: new album = add an entry here matching the data-album key + #win-player-<key>
+const ALBUMS = {
+  'core-dump': {
+    media: 'core-dump-media/',
+    tracks: [
+      { title: 'RedtailWorks - Core Dump - 01 Fracture',    display: 'Fracture' },
+      { title: 'RedtailWorks - Core Dump - 02 Glass',       display: 'Glass' },
+      { title: 'RedtailWorks - Core Dump - 03 God Machine', display: 'God Machine' },
+      { title: 'RedtailWorks - Core Dump - 04 Manhunt',     display: 'Manhunt' },
+      { title: 'RedtailWorks - Core Dump - 05 Puddles',     display: 'Puddles' },
+      { title: 'RedtailWorks - Core Dump - 06 Rot',         display: 'Rot' },
+      { title: 'RedtailWorks - Core Dump - 07 Specter',     display: 'Specter' },
+      { title: 'RedtailWorks - Core Dump - 08 japaneese',   display: '優雅な終了' },
+    ]
+  },
+  'happy-haunting': {
+    media: 'happy-haunting-media/',
+    tracks: [
+      { title: '1. Intro',                                                display: 'Intro' },
+      { title: '2. Ghosts Like to Dance Too',                             display: 'Ghosts Like to Dance Too' },
+      { title: '3. Jump & Scare',                                         display: 'Jump & Scare' },
+      { title: '4. Ghost In The Glow',                                    display: 'Ghost In The Glow' },
+      { title: '5. Not-so-good-track',                                    display: 'Not-so-good-track' },
+      { title: '6. JQ - Graveyard Shift - RTW Remix',                     display: 'JQ - Graveyard Shift - RTW Remix' },
+      { title: '7. Shes kinda cute tho',                                  display: 'Shes kinda cute tho' },
+      { title: '8. Untitled-WeeeWooo-Ahh-Song',                           display: 'Untitled-WeeeWooo-Ahh-Song' },
+      { title: "9. There is a haunting in my pants (and you're invited)", display: "There is a haunting in my pants (and you're invited)" },
+      { title: '10. Outro',                                               display: 'Outro' },
+    ]
+  },
+  'evol': {
+    media: 'evol-media/',
+    // title must match the real filename on disk exactly (minus extension, case-sensitive)
+    tracks: [
+      { title: '1bugs',                     display: 'Bugs' },
+      { title: '2Collapsed',                display: 'Collapsed' },
+      { title: '3Deep Mutation',            display: 'Deep Mutation' },
+      { title: '4Ear to Ear',               display: 'Ear 2 Ear' },
+      { title: '5Fractals',                 display: 'Fractals' },
+      { title: '6Left Brain _ Right Brain', display: 'Left Brain / Right Brain' },
+      { title: '7Liminal Engine',           display: 'Liminal Engine' },
+      { title: '8Mycelium',                 display: 'Mycelium' },
+      { title: '9Neural Drift',             display: 'Neural Drift' },
+      { title: '10Psychic Weather',         display: 'Psychic Weather' },
+      { title: '11Ritual',                  display: 'Ritual' },
+      { title: '12Skull Resonance',         display: 'Skull Resonance' },
+      { title: '13Thanatosis',              display: 'Thanatosis' },
+      { title: '14The Garden',              display: 'The Garden' },
+      { title: '15Theta',                   display: 'Theta' },
+      { title: '16Void',                    display: '//VOID//' },
+    ]
+  }
+};
+const AUDIO_FORMATS = ['mp3', 'flac', 'wav', 'ogg', 'aac', 'm4a', 'opus'];
+const trackResolveCache = {};
+
+function resolveTrack(media, title) {
+  const key = media + title;
+  if (trackResolveCache[key] !== undefined) return Promise.resolve(trackResolveCache[key]);
+  return new Promise(resolve => {
+    let idx = 0;
+    function tryNext() {
+      if (idx >= AUDIO_FORMATS.length) { trackResolveCache[key] = null; resolve(null); return; }
+      const src = media + encodeURIComponent(title) + '.' + AUDIO_FORMATS[idx++];
+      const probe = new Audio();
+      probe.preload = 'metadata';
+      probe.src = src;
+      probe.addEventListener('loadedmetadata', () => {
+        trackResolveCache[key] = { src, duration: probe.duration };
+        resolve(trackResolveCache[key]);
+      });
+      probe.addEventListener('error', tryNext);
+    }
+    tryNext();
+  });
+}
+
+function fmtTime(s) {
+  if (!isFinite(s) || s <= 0) return '—:—';
+  return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+}
+
+// one global audio engine — opening a second album pauses the first
+const globalAudio = new Audio();
+let nowPlayingAlbum = null;
+let nowPlayingIndex = -1;
+let nowPlayingState = false;
+
+function buildPlayer(key) {
+  const album = ALBUMS[key];
+  const list = document.querySelector('[data-tracklist="' + key + '"]');
+  if (!list || list.dataset.built) return;
+  list.dataset.built = '1';
+
+  album.tracks.forEach((t, i) => {
+    const row = document.createElement('div');
+    row.className = 'track-row';
+    row.dataset.index = i;
+    row.innerHTML = `
+      <span class="track-num">${String(i + 1).padStart(2, '0')}</span>
+      <span class="track-name">${t.display}</span>
+      <span class="track-dur">…</span>
+    `;
+    row.addEventListener('click', () => playTrack(key, i));
+    list.appendChild(row);
+
+    resolveTrack(album.media, t.title).then(result => {
+      const durEl = row.querySelector('.track-dur');
+      if (result) {
+        durEl.textContent = fmtTime(result.duration);
+      } else {
+        durEl.textContent = '—:—';
+        row.classList.add('unavailable');
+        row.title = 'File not found';
+      }
+    });
+  });
+
+  const transport = document.querySelector('[data-transport="' + key + '"]');
+  transport.querySelector('[data-player-action="toggle"]').addEventListener('click', () => togglePlay(key));
+  transport.querySelector('[data-player-action="next"]').addEventListener('click', () => stepTrack(key, 1));
+  transport.querySelector('[data-player-action="prev"]').addEventListener('click', () => stepTrack(key, -1));
+}
+
+function playTrack(key, i) {
+  const album = ALBUMS[key];
+  const t = album.tracks[i];
+  resolveTrack(album.media, t.title).then(result => {
+    if (!result) return;
+    nowPlayingAlbum = key;
+    nowPlayingIndex = i;
+    globalAudio.src = result.src;
+    globalAudio.play().catch(() => {});
+    nowPlayingState = true;
+    refreshAllPlayerUIs();
+  });
+}
+
+function togglePlay(key) {
+  if (nowPlayingAlbum === key && nowPlayingState) {
+    globalAudio.pause();
+    nowPlayingState = false;
+    refreshAllPlayerUIs();
+    return;
+  }
+  if (nowPlayingAlbum === key && nowPlayingIndex >= 0) {
+    globalAudio.play().catch(() => {});
+    nowPlayingState = true;
+    refreshAllPlayerUIs();
+    return;
+  }
+  // nothing queued for this album yet — start from first available track
+  const firstAvailable = ALBUMS[key].tracks.findIndex((t, i) => {
+    const row = document.querySelector('[data-tracklist="' + key + '"] .track-row[data-index="' + i + '"]');
+    return row && !row.classList.contains('unavailable');
+  });
+  if (firstAvailable >= 0) playTrack(key, firstAvailable);
+}
+
+function stepTrack(key, dir) {
+  const album = ALBUMS[key];
+  const activeKey = nowPlayingAlbum === key ? nowPlayingIndex : -1;
+  let next = activeKey + dir;
+  if (next < 0) next = album.tracks.length - 1;
+  if (next >= album.tracks.length) next = 0;
+  playTrack(key, next);
+}
+
+globalAudio.addEventListener('ended', () => {
+  if (!nowPlayingAlbum) return;
+  stepTrack(nowPlayingAlbum, 1);
+});
+globalAudio.addEventListener('play', () => { nowPlayingState = true; refreshAllPlayerUIs(); });
+globalAudio.addEventListener('pause', () => { nowPlayingState = false; refreshAllPlayerUIs(); });
+globalAudio.addEventListener('timeupdate', () => {
+  if (!globalAudio.duration || !nowPlayingAlbum) return;
+  const pct = (globalAudio.currentTime / globalAudio.duration) * 100;
+  const fill = document.querySelector('[data-transport="' + nowPlayingAlbum + '"] [data-progress-fill]');
+  if (fill) fill.style.width = pct + '%';
+});
+
+function refreshAllPlayerUIs() {
+  Object.keys(ALBUMS).forEach(key => {
+    const transport = document.querySelector('[data-transport="' + key + '"]');
+    if (!transport) return;
+    const isThis = nowPlayingAlbum === key;
+    const toggleBtn = transport.querySelector('[data-player-action="toggle"]');
+    toggleBtn.textContent = (isThis && nowPlayingState) ? '⏸' : '▶';
+    const npEl = transport.querySelector('[data-now-playing]');
+    npEl.textContent = isThis && nowPlayingIndex >= 0
+      ? ALBUMS[key].tracks[nowPlayingIndex].display
+      : 'Nothing playing';
+    if (!isThis) {
+      const fill = transport.querySelector('[data-progress-fill]');
+      if (fill) fill.style.width = '0%';
+    }
+    document.querySelectorAll('[data-tracklist="' + key + '"] .track-row').forEach(row => {
+      row.classList.toggle('playing', isThis && Number(row.dataset.index) === nowPlayingIndex);
+    });
+  });
+}
+
+buildPlayer('core-dump');
+buildPlayer('happy-haunting');
+buildPlayer('evol');
+
+$all('.album-icon').forEach(icon => {
+  const key = icon.dataset.album;
+  const activate = () => {
+    const winId = 'player-' + key;
+    const s = winState[winId];
+    if (s.open && !s.minimized) focusWindow(winId);
+    else if (s.minimized) { s.el.classList.add('open'); s.minimized = false; focusWindow(winId); }
+    else openWindow(winId);
+  };
+  icon.addEventListener('click', activate);
+  icon.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); } });
+});
+
+// ══════ webwall physics (shake the window to scatter the buttons) ══════
+// synthesized "bonk" sound via Web Audio — noise burst + pitched tone with a fast decay envelope
+let bonkCtx = null;
+let lastBonkAt = 0;
+function playBonk(strength) {
+  const now = performance.now();
+  if (now - lastBonkAt < 45) return; // throttle so rapid collisions don't turn into noise mush
+  lastBonkAt = now;
+  strength = Math.max(0.15, Math.min(strength, 1));
+  try {
+    bonkCtx = bonkCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = bonkCtx;
+    const t0 = ctx.currentTime;
+    const dur = 0.09 + strength * 0.05;
+
+    // short filtered noise burst (the "knock")
+    const bufferSize = Math.floor(ctx.sampleRate * dur);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    const noiseFilter = ctx.createBiquadFilter();
+    noiseFilter.type = 'bandpass';
+    noiseFilter.frequency.value = 900 + Math.random() * 500;
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.5 * strength, t0);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+    noise.connect(noiseFilter).connect(noiseGain).connect(ctx.destination);
+
+    // short pitched "clack" body
+    const osc = ctx.createOscillator();
+    osc.type = 'triangle';
+    const pitch = 90 + Math.random() * 70 + strength * 60;
+    osc.frequency.setValueAtTime(pitch, t0);
+    osc.frequency.exponentialRampToValueAtTime(pitch * 0.5, t0 + dur);
+    const oscGain = ctx.createGain();
+    oscGain.gain.setValueAtTime(0.35 * strength, t0);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+    osc.connect(oscGain).connect(ctx.destination);
+
+    noise.start(t0); noise.stop(t0 + dur);
+    osc.start(t0); osc.stop(t0 + dur);
+  } catch (e) { /* audio not available — fail silently */ }
+}
+
+const MATTER_WALL_THICKNESS = 60;
+const TASKBAR_H_PX = 38; // must match --taskbar-h in CSS
+let physEngine = null;
+let physRunner = null;
+let physRunning = false;
+let physStartedAt = 0;
+let wallContainer = null;
+let wallReleased = false; // true once webwall has been closed via the easter egg
+const physBodies = []; // { body, el }
+let physWalls = { top: null, bottom: null, left: null, right: null };
+const PHYS_MAX_MS = 6000; // safety net — force everything asleep after this long no matter what
+
+// current play-area size in local coords: the small window normally, or the
+// whole desktop once released. uses clientWidth/Height (not scrollWidth/Height)
+// to avoid a feedback loop where the buttons' own position pushes the page taller
+function getPhysBounds() {
+  if (wallReleased) {
+    const desktop = document.getElementById('desktop');
+    return { w: desktop.clientWidth, h: desktop.clientHeight - TASKBAR_H_PX };
+  }
+  return { w: wallContainer.clientWidth || 500, h: wallContainer.clientHeight || 210 };
+}
+
+function buildButtonPhysics() {
+  if (typeof Matter === 'undefined') return; // CDN blocked/offline — buttons just stay put, no crash
+  wallContainer = document.getElementById('button-wall');
+  if (!wallContainer) return;
+
+  const { Engine, Bodies, Composite, Body } = Matter;
+  physEngine = Engine.create();
+  physEngine.gravity.y = 1.1;
+  physEngine.enableSleeping = true;
+
+  const slots = $all('.btn-slot', wallContainer);
+  const w = 88, h = 31;
+
+  slots.forEach((el, i) => {
+    const cols = 5;
+    const col = i % cols, row = Math.floor(i / cols);
+    const cx = 10 + w / 2 + col * 100 + (Math.random() * 10 - 5);
+    const cy = 10 + h / 2 + row * 42 + (Math.random() * 8 - 4);
+    const body = Bodies.rectangle(cx, cy, w, h, {
+      restitution: 0.55,
+      friction: 0.25,
+      frictionAir: 0.005,
+      angle: (Math.random() * 10 - 5) * Math.PI / 180,
+      chamfer: { radius: 2 },
+    });
+    physBodies.push({ body, el });
+    Composite.add(physEngine.world, body);
+    applyBodyTransform(body, el);
+  });
+
+  rebuildWalls();
+
+  // bonk sound driven by real collision speed from Matter
+  Matter.Events.on(physEngine, 'collisionStart', (event) => {
+    event.pairs.forEach((pair) => {
+      const speed = Math.max(pair.bodyA.speed, pair.bodyB.speed);
+      if (speed > 2.2) playBonk(Math.min(speed / 14, 1));
+    });
+  });
+}
+
+function rebuildWalls() {
+  if (!physEngine) return;
+  const { Bodies, Composite } = Matter;
+  const { w: cw, h: ch } = getPhysBounds();
+  const t = MATTER_WALL_THICKNESS;
+
+  Object.values(physWalls).forEach(w => { if (w) Composite.remove(physEngine.world, w); });
+  physWalls.top = Bodies.rectangle(cw / 2, -t / 2, cw + t * 2, t, { isStatic: true });
+  physWalls.bottom = Bodies.rectangle(cw / 2, ch + t / 2, cw + t * 2, t, { isStatic: true });
+  physWalls.left = Bodies.rectangle(-t / 2, ch / 2, t, ch + t * 2, { isStatic: true });
+  physWalls.right = Bodies.rectangle(cw + t / 2, ch / 2, t, ch + t * 2, { isStatic: true });
+  Composite.add(physEngine.world, Object.values(physWalls));
+}
+
+function applyBodyTransform(body, el) {
+  const deg = body.angle * 180 / Math.PI;
+  el.style.transform = `translate(${body.position.x - 44}px, ${body.position.y - 15.5}px) rotate(${deg}deg)`;
+}
+
+// easter egg: close webwall -> buttons spill onto the desktop
+function ensurePhysicsLoopRunning() {
+  if (!physRunning) {
+    physRunning = true;
+    physStartedAt = performance.now();
+    lastFrameTime = performance.now();
+    requestAnimationFrame(physicsStep);
+  } else {
+    physStartedAt = performance.now();
+  }
+}
+
+function releaseButtonsOntoDesktop() {
+  if (!physEngine || wallReleased) { closeWindow('webwall'); return; }
+  const desktop = document.getElementById('desktop');
+  const wallRect = wallContainer.getBoundingClientRect();
+  const deskRect = desktop.getBoundingClientRect();
+  const offsetX = wallRect.left - deskRect.left;
+  const offsetY = wallRect.top - deskRect.top;
+
+  physBodies.forEach(({ body, el }) => {
+    const newX = body.position.x + offsetX;
+    const newY = body.position.y + offsetY;
+    Matter.Body.setPosition(body, { x: newX, y: newY });
+    Matter.Sleeping.set(body, false);
+    desktop.appendChild(el); // escape the window's overflow:hidden clipping
+    applyBodyTransform(body, el); // sync visual position immediately, don't wait a frame
+  });
+
+  wallReleased = true;
+  rebuildWalls(); // now sized to the whole desktop instead of the small window
+  closeWindow('webwall');
+
+  // little scatter so it reads as "spilling out" rather than teleporting
+  physBodies.forEach(({ body }) => {
+    Matter.Body.setVelocity(body, { x: (Math.random() * 2 - 1) * 3, y: Math.random() * 2 });
+  });
+  ensurePhysicsLoopRunning();
+}
+
+function resetButtonsIntoWindow() {
+  wallReleased = false;
+  const w = 88, h = 31;
+  physBodies.forEach(({ body, el }, i) => {
+    wallContainer.appendChild(el); // back into the window's clipped play area
+    const cols = 5;
+    const col = i % cols, row = Math.floor(i / cols);
+    const cx = 10 + w / 2 + col * 100 + (Math.random() * 10 - 5);
+    const cy = 10 + h / 2 + row * 42 + (Math.random() * 8 - 4);
+    Matter.Body.setPosition(body, { x: cx, y: cy });
+    Matter.Body.setVelocity(body, { x: 0, y: 0 });
+    Matter.Body.setAngle(body, (Math.random() * 10 - 5) * Math.PI / 180);
+    Matter.Body.setAngularVelocity(body, 0);
+    Matter.Sleeping.set(body, true);
+    applyBodyTransform(body, el);
+  });
+  rebuildWalls();
+}
+
+// SHAKE_FORCE tuned to match this body size + default Matter density
+const SHAKE_FORCE = 0.0008;
+
+function applyShakeForce(dx, dy) {
+  if (!physEngine || wallReleased) return; // no titlebar to shake once it's closed
+  const { Body, Sleeping } = Matter;
+  physBodies.forEach(({ body }) => {
+    Sleeping.set(body, false);
+    Body.applyForce(body, body.position, { x: dx * SHAKE_FORCE, y: dy * SHAKE_FORCE });
+  });
+  ensurePhysicsLoopRunning();
+}
+
+let lastFrameTime = 0;
+function physicsStep(now) {
+  const dt = Math.min(now - lastFrameTime, 50); // ms, capped
+  lastFrameTime = now;
+
+  const { Sleeping, Body } = Matter;
+  const forceSleep = (now - physStartedAt) > PHYS_MAX_MS;
+  if (forceSleep) {
+    physBodies.forEach(({ body }) => Sleeping.set(body, true));
+  } else {
+    Matter.Engine.update(physEngine, dt);
+  }
+
+  // safety net: if a body tunnels outside the play area, drop it back inside
+  const { w: cw, h: ch } = getPhysBounds();
+  physBodies.forEach(({ body }) => {
+    const p = body.position;
+    if (p.x < -120 || p.x > cw + 120 || p.y < -120 || p.y > ch + 120) {
+      Body.setPosition(body, { x: Math.random() * (cw - 88) + 44, y: Math.random() * (ch - 31) + 15.5 });
+      Body.setVelocity(body, { x: 0, y: 0 });
+      Body.setAngularVelocity(body, 0);
+    }
+  });
+
+  let anyAwake = false;
+  physBodies.forEach(({ body, el }) => {
+    applyBodyTransform(body, el);
+    if (!body.isSleeping) anyAwake = true;
+  });
+
+  if (anyAwake && !forceSleep) {
+    requestAnimationFrame(physicsStep);
+  } else {
+    physRunning = false;
+  }
+}
+
+function wireWebwallShake() {
+  const el = document.getElementById('win-webwall');
+  if (!el) return;
+  let lastX = null, lastY = null;
+
+  el._onDragStart = function (ev) {
+    lastX = ev.clientX;
+    lastY = ev.clientY;
+    rebuildWalls(); // in case the window was resized since the last shake
+  };
+  el._onDragMove = function (ev) {
+    if (lastX === null) { lastX = ev.clientX; lastY = ev.clientY; return; }
+    const dx = ev.clientX - lastX;
+    const dy = ev.clientY - lastY;
+    lastX = ev.clientX;
+    lastY = ev.clientY;
+    if (dx === 0 && dy === 0) return;
+    applyShakeForce(dx, dy);
+  };
+}
+
+// ══════ webwall right-click menu ══════
+// right-clicking a real button shows a win95-style "open in new tab" menu instead of the browser default
+function wireButtonContextMenu() {
+  const menu = document.getElementById('context-menu');
+  const wall = document.getElementById('button-wall');
+  if (!menu || !wall) return;
+
+  function closeMenu() {
+    menu.classList.remove('open');
+    menu.innerHTML = '';
+  }
+
+  wall.addEventListener('contextmenu', (e) => {
+    const slot = e.target.closest('.btn-slot');
+    if (!slot || !slot.href) return; // empty placeholder slots keep the normal browser menu
+    e.preventDefault();
+
+    menu.innerHTML = '';
+    const item = document.createElement('div');
+    item.className = 'context-menu-item';
+    item.textContent = '↗ Open in new tab';
+    item.addEventListener('click', () => {
+      window.open(slot.href, '_blank', 'noopener');
+      closeMenu();
+    });
+    menu.appendChild(item);
+
+    // keep it on-screen even near an edge
+    const menuW = 180, menuH = 34;
+    const x = Math.min(e.clientX, window.innerWidth - menuW - 4);
+    const y = Math.min(e.clientY, window.innerHeight - menuH - 4);
+    menu.style.left = x + 'px';
+    menu.style.top = y + 'px';
+    menu.classList.add('open');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#context-menu')) closeMenu();
+  });
+  document.addEventListener('contextmenu', (e) => {
+    if (!e.target.closest('.btn-slot')) closeMenu();
+  });
+  window.addEventListener('blur', closeMenu);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+}
+
+// ══════ boot ══════
+APPS.forEach(initWindow);
+buildStartMenu();
+wireDesktopIcon('icon-about', 'about');
+wireDesktopIcon('icon-chat', 'chat');
+wireDesktopIcon('icon-album-core-dump', 'player-core-dump');
+wireDesktopIcon('icon-album-happy-haunting', 'player-happy-haunting');
+wireDesktopIcon('icon-album-evol', 'player-evol');
+comicLoad(COMIC_TOTAL);
+buildButtonPhysics();
+wireWebwallShake();
+wireButtonContextMenu();
+
+// windows open by default on page load
+openWindow('about');
+openWindow('hotlink');
+openWindow('webrings');
+openWindow('webwall');
+</script>
+</body>
+</html>
+<!--note-->

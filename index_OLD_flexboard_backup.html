@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RedtailWorks!</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ── TOKENS ─────────────────────────────────────────────── */
+:root {
+  --desktop:  #d4d0c8;
+  --chrome:   #c0c0c0;
+  --win-bg:   #ffffff;
+  --bl:       #ffffff;
+  --bm:       #808080;
+  --bd:       #000000;
+  --bar-a:    #2d006b;
+  --bar-b:    #8800ee;
+  --bar-off-a:#6a6a6a;
+  --bar-off-b:#999999;
+  --text:     #000000;
+  --muted:    #555555;
+  --link:     #5500bb;
+  --link-h:   #8800ff;
+  --font-ui:  'VT323', monospace;
+  --font-body:'IBM Plex Mono', monospace;
+  --min-box-h: 28px;  /* minimized = just titlebar */
+  --body-min-h: 80px;
+  --body-max-h: 420px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--desktop);
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.55;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 100vh;
+  max-width: 800px;   
+  margin: 0 auto;     
+}
+
+/* ── CUSTOM CURSOR ──────────────────────────────────────────── */
+body {
+  cursor: url('cursor/cursor_32.png') 16 16, auto;
+}
+@media (min-resolution: 2dppx) {
+  body {
+    cursor: url('cursor/cursor_64.png') 32 32, auto;
+  }
+}
+
+/* ── BOX (W95 window) ───────────────────────────────────── */
+.box {
+  width: 100%;
+  border: 2px solid;
+  border-color: var(--bl) var(--bm) var(--bm) var(--bl);
+  box-shadow: 2px 2px 0 var(--bd);
+  background: var(--win-bg);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* ── RESIZE HANDLE TOP ──────────────────────────────────── */
+.resize-top {
+  width: 100%; height: 5px;
+  cursor: ns-resize;
+  position: absolute; top: -4px; left: 0;
+  z-index: 10;
+}
+
+/* ── TITLEBAR ───────────────────────────────────────────── */
+.titlebar {
+  background: linear-gradient(90deg, var(--bar-a), var(--bar-b));
+  padding: 3px 4px 2px 6px;
+  display: flex; align-items: center; justify-content: space-between; gap: 4px;
+  flex-shrink: 0;
+  user-select: none;
+}
+.box.off .titlebar {
+  background: linear-gradient(90deg, var(--bar-off-a), var(--bar-off-b));
+}
+.tb-left { display: flex; align-items: center; gap: 5px; min-width: 0; overflow: hidden; }
+.tb-icon { font-size: 13px; flex-shrink: 0; }
+.tb-text {
+  font-family: var(--font-ui); font-size: 16px; color: #fff;
+  letter-spacing: 0.05em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tb-btns { display: flex; gap: 2px; flex-shrink: 0; }
+.wbtn {
+  width: 16px; height: 14px; background: var(--chrome);
+  border: 2px solid; border-color: var(--bl) var(--bm) var(--bm) var(--bl);
+  color: var(--text); font-family: var(--font-ui); font-size: 12px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  padding: 0; line-height: 1; flex-shrink: 0;
+}
+.wbtn:active { border-color: var(--bm) var(--bl) var(--bl) var(--bm); }
+
+/* ── WINDOW BODY ────────────────────────────────────────── */
+.win-body {
+  border-top: 2px solid var(--bm);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 14px;
+  resize: none;
+  /* height controlled by JS/inline style */
+}
+.box.minimized .win-body { display: none; }
+.box.minimized .resize-bot { display: none; }
+
+/* ── RESIZE HANDLE BOTTOM ───────────────────────────────── */
+.resize-bot {
+  width: 100%; height: 6px;
+  background: var(--chrome);
+  border-top: 2px solid var(--bm);
+  cursor: ns-resize;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.resize-bot::after {
+  content: ''; width: 40px; height: 2px;
+  border-top: 1px solid var(--bm); border-bottom: 1px solid var(--bl);
+}
+
+/* ── ADDR BAR ───────────────────────────────────────────── */
+.addr {
+  background: #fff; border: 2px solid;
+  border-color: var(--bm) var(--bl) var(--bl) var(--bm);
+  padding: 2px 8px; font-size: 11px; color: var(--muted);
+  margin-bottom: 10px; display: flex; align-items: center; gap: 5px;
+}
+.addr span { color: var(--link); }
+
+.rule { border: none; border-top: 2px solid var(--bm); border-bottom: 2px solid var(--bl); margin: 10px 0; }
+
+h2 { font-family: var(--font-ui); font-size: 22px; letter-spacing: 0.06em; margin-bottom: 8px; }
+p { color: var(--muted); margin-bottom: 8px; }
+p:last-child { margin-bottom: 0; }
+a { color: var(--link); text-decoration: underline; }
+a:hover { color: var(--link-h); }
+
+/* ── BANNER BOX ─────────────────────────────────────────── */
+#box-banner .win-body {
+  padding: 0; background: #000; line-height: 0;
+}
+#box-banner .win-body img {
+  width: 100%; display: block;
+  object-fit: contain; object-position: center;
+}
+
+/* ── ABOUT ──────────────────────────────────────────────── */
+.about-grid {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 14px; align-items: start;
+}
+.pfp-wrap { display: flex; flex-direction: column; }
+.pfp-frame {
+  border: 2px solid; border-color: var(--bm) var(--bl) var(--bl) var(--bm);
+  background: #000; padding: 3px; line-height: 0;
+}
+.pfp-frame img { width: 100%; display: block; }
+.pfp-cap {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  text-align: center; padding: 3px 0; border-top: 2px solid var(--bm); margin-top: 3px;
+}
+.tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.tag {
+  font-family: var(--font-ui); font-size: 13px; letter-spacing: 0.04em;
+  background: var(--chrome); border: 2px solid;
+  border-color: var(--bl) var(--bm) var(--bm) var(--bl);
+  padding: 0 7px 1px;
+}
+@media (max-width: 500px) {
+  .about-grid { grid-template-columns: 1fr; }
+  .pfp-frame { max-width: 140px; }
+}
+
+/* ── MUSIC ──────────────────────────────────────────────── */
+.album-row {
+  display: flex; gap: 12px; align-items: center;
+  padding: 8px 0; border-bottom: 2px solid #eee;
+  cursor: pointer; text-decoration: none; color: inherit;
+}
+.album-row:last-child { border-bottom: none; }
+.album-row:hover { background: #f5f5ff; }
+.album-thumb {
+  width: 72px; height: 72px; object-fit: cover; flex-shrink: 0;
+  border: 2px solid; border-color: var(--bm) var(--bl) var(--bl) var(--bm);
+  display: block;
+}
+.album-info { flex: 1; min-width: 0; }
+.album-title { font-family: var(--font-ui); font-size: 18px; letter-spacing: 0.04em; }
+.album-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.album-open {
+  font-family: var(--font-ui); font-size: 14px; letter-spacing: 0.05em;
+  background: var(--chrome); border: 2px solid;
+  border-color: var(--bl) var(--bm) var(--bm) var(--bl);
+  padding: 1px 10px 0; margin-top: 4px; display: inline-block;
+  color: var(--text); text-decoration: none; cursor: pointer;
+}
+.album-row:hover .album-open { background: var(--link); color: #fff; border-color: var(--link); }
+
+/* ── COMICS ─────────────────────────────────────────────── */
+.comic-viewer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.comic-img-wrap {
+  width: 100%;
+  border: 2px solid;
+  border-color: var(--bm) var(--bl) var(--bl) var(--bm);
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100px;
+}
+.comic-img-wrap img {
+  width: 100%;
+  display: block;
+  object-fit: contain;
+}
+.comic-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.comic-btn {
+  font-family: var(--font-ui);
+  font-size: 16px;
+  letter-spacing: 0.05em;
+  background: var(--chrome);
+  border: 2px solid;
+  border-color: var(--bl) var(--bm) var(--bm) var(--bl);
+  padding: 1px 12px 0;
+  cursor: pointer;
+  color: var(--text);
+}
+.comic-btn:hover { background: var(--link); color: #fff; border-color: var(--link); }
+.comic-btn:active { border-color: var(--bm) var(--bl) var(--bl) var(--bm); }
+.comic-btn:disabled {
+  color: var(--muted);
+  cursor: default;
+  background: var(--chrome);
+  border-color: var(--bl) var(--bm) var(--bm) var(--bl);
+  opacity: 0.5;
+}
+.comic-counter {
+  font-family: var(--font-ui);
+  font-size: 15px;
+  color: var(--muted);
+  min-width: 80px;
+  text-align: center;
+}
+.comic-open-wrap { width: 100%; text-align: right; }
+
+/* ── BLOG ───────────────────────────────────────────────── */
+
+.searchbar-wrap {
+  display: flex; gap: 4px; margin-bottom: 10px;
+}
+.searchbar {
+  flex: 1; font-family: var(--font-body); font-size: 12px;
+  border: 2px solid; border-color: var(--bm) var(--bl) var(--bl) var(--bm);
+  padding: 3px 8px; background: #fff; color: var(--text);
+  outline: none;
+}
+.searchbar:focus { border-color: var(--link); }
+.search-btn {
+  font-family: var(--font-ui); font-size: 16px;
+  background: var(--chrome); border: 2px solid;
+  border-color: var(--bl) var(--bm) var(--bm) var(--bl);
+  padding: 0 12px; cursor: pointer; color: var(--text);
+}
+.search-btn:active { border-color: var(--bm) var(--bl) var(--bl) var(--bm); }
+
+.blog-post {
+  padding: 8px 0; border-bottom: 2px solid #eee;
+}
+.blog-post:last-child { border-bottom: none; }
+.blog-post.hidden { display: none; }
+.post-date { font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+.post-title { font-family: var(--font-ui); font-size: 17px; letter-spacing: 0.04em; margin: 2px 0; }
+.post-body { font-size: 12px; color: var(--muted); }
+.no-results { font-size: 12px; color: var(--muted); padding: 8px 0; display: none; }
+
+/* ── WEBWALL ────────────────────────────────────────────── */
+.button-wall {
+  display: flex; flex-wrap: wrap; gap: 5px;
+  padding: 8px; background: var(--desktop);
+  border: 2px solid; border-color: var(--bm) var(--bl) var(--bl) var(--bm);
+}
+.btn-slot { width: 88px; height: 31px; flex-shrink: 0; display: block; position: relative; }
+.btn-slot img { width: 88px; height: 31px; display: block; image-rendering: pixelated; border: 1px solid rgba(0,0,0,0.15); }
+.btn-slot.empty {
+  background: var(--chrome); border: 2px dashed var(--bm);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-ui); font-size: 11px; color: var(--muted);
+}
+.btn-slot[title]:hover::after {
+  content: attr(title); position: absolute; bottom: calc(100% + 3px); left: 50%;
+  transform: translateX(-50%); background: #ffffe1; border: 1px solid #000;
+  padding: 1px 5px; font-size: 11px; white-space: nowrap; z-index: 99; pointer-events: none;
+}
+.wall-note { font-size: 11px; color: var(--muted); margin-top: 8px; }
+
+/* ── WEBRINGS ───────────────────────────────────────────── */
+.webring-list {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 14px; padding: 4px 0;
+}
+.webring-item {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  text-align: center;
+}
+.webring-label { font-family: var(--font-ui); font-size: 14px; color: var(--muted); letter-spacing: 0.05em; }
+/* actual webring widget code goes inside .webring-widget */
+.webring-widget { display: flex; align-items: center; gap: 8px; }
+.webring-placeholder {
+  background: var(--chrome); border: 2px solid;
+  border-color: var(--bm) var(--bl) var(--bl) var(--bm);
+  padding: 6px 16px; font-family: var(--font-ui); font-size: 14px; color: var(--muted);
+}
+
+/* ── SCROLLBAR STYLING ──────────────────────────────────── */
+.win-body {
+  scrollbar-width: thin;
+  scrollbar-color: var(--bm) var(--chrome);
+}
+.win-body::-webkit-scrollbar { width: 12px; }
+.win-body::-webkit-scrollbar-track {
+  background: var(--chrome);
+  border-left: 1px solid var(--bm);
+}
+.win-body::-webkit-scrollbar-thumb {
+  background: var(--chrome);
+  border: 2px solid; border-color: var(--bl) var(--bm) var(--bm) var(--bl);
+}
+
+/* shake for close */
+@keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-4px)} 40%{transform:translateX(4px)} 60%{transform:translateX(-3px)} 80%{transform:translateX(3px)} }
+.shaking { animation: shake 0.35s ease; }
+
+/* ── COMMENT WIDGET OVERRIDES ───────────────────────────────── */
+#c_widget input,
+#c_widget textarea {
+  font-family: var(--font-body);
+  font-size: 12px;
+  border: 2px solid;
+  border-color: var(--bm) var(--bl) var(--bl) var(--bm);
+  background: #fff;
+  color: var(--text);
+  padding: 3px 6px;
+  outline: none;
+  width: 100%;
+}
+#c_widget input:focus,
+#c_widget textarea:focus { border-color: var(--link); }
+
+#c_widget button,
+#c_widget input[type="submit"] {
+  font-family: var(--font-ui);
+  font-size: 16px;
+  letter-spacing: 0.05em;
+  background: var(--chrome);
+  border: 2px solid;
+  border-color: var(--bl) var(--bm) var(--bm) var(--bl);
+  padding: 1px 14px 0;
+  cursor: pointer;
+  color: var(--text);
+  width: auto;
+}
+#c_widget button:hover,
+#c_widget input[type="submit"]:hover {
+  background: var(--link); color: #fff; border-color: var(--link);
+}
+#c_widget button:active,
+#c_widget input[type="submit"]:active {
+  border-color: var(--bm) var(--bl) var(--bl) var(--bm);
+}	
+
+/* ── ESSAYS ─────────────────────────────────────────────── */
+.essay-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 0;
+  border-bottom: 2px solid #eee;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+.essay-row:last-child { border-bottom: none; }
+.essay-row:hover { background: #f5f5ff; }
+.essay-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.essay-title {
+  font-family: var(--font-ui);
+  font-size: 18px;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+.essay-date {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.essay-desc {
+  font-size: 12px;
+  color: var(--muted);
+}
+.essay-open {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  background: var(--chrome);
+  border: 2px solid;
+  border-color: var(--bl) var(--bm) var(--bm) var(--bl);
+  padding: 1px 10px 0;
+  display: inline-block;
+  color: var(--text);
+  align-self: flex-start;
+}
+.essay-row:hover .essay-open {
+  background: var(--link);
+  color: #fff;
+  border-color: var(--link);
+}
+
+</style>
+</head>
+<body>
+
+	
+<!-- ── BANNER ──────────────────────────────────────────────── -->
+<div class="box" id="box-banner">
+  <div class="titlebar">
+    <div class="tb-left">
+      <span class="tb-icon">🐾</span>
+      <span class="tb-text">RedtailWorks</span>
+    </div>
+    <div class="tb-btns">
+      <button class="wbtn" onclick="toggleMin('box-banner')" title="Minimize">_</button>
+      <button class="wbtn" onclick="shake(this)" title="Close">×</button>
+    </div>
+  </div>
+  <div class="win-body" style="height:320px;">
+    <img src="redtailalbum.webp" alt="RedtailWorks">
+  </div>
+  <div class="resize-bot" onmousedown="startResize(event,'box-banner')"></div>
+</div>
+
+<!-- ── ABOUT ────────────────────────────────────────────────── -->
+<div class="box" id="box-about">
+  <div class="resize-top" onmousedown="startResizeTop(event,'box-about')"></div>
+  <div class="titlebar">
+    <div class="tb-left">
+      <span class="tb-icon">👤</span>
+      <span class="tb-text">About — RedtailWorks</span>
+    </div>
+    <div class="tb-btns">
+      <button class="wbtn" onclick="toggleMin('box-about')" title="Minimize">_</button>
+      <button class="wbtn" onclick="shake(this)" title="Close">×</button>
+    </div>
+  </div>
+  <div class="win-body" style="height:480px;">
+    <div class="addr">📂 <span>redtail.works/about</span></div>
+    <div class="about-grid">
+      <div class="pfp-wrap">
+        <div class="pfp-frame"><img src="SS4.png" alt="RedtailWorks"></div>
+        <div class="pfp-cap">RedtailWorks.exe</div>
+      </div>
+      <div>
+        <h2>Hello!</h2>
+        <p>I'm RedtailWorks — I'm an Oregon-based producer converting ADHD into audio using a mix of digital tools for your listening pleasure.</p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;My journey into music started around 2011 at age 14, right when I was finding my footing in the furry fandom and discovering LapFox Trax. Dubstep was everywhere and the music I was finding in the community hit different, so I got my hands on a (totaly legal) copy of FL Studio and never looked back.</p>
+        <br>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;Describing my sound is something I genuinely can't do. I experiment across genres constantly and try to make sure no two albums sound the same, except maybe the seasonal stuff. What I make now has a lot more layering and genre blending than my early work did. I commission all my album art too, and rather than dictating what I want, I let the artist listen to the music first and create whatever it inspires in them. RedtailWorks isn't collaborative in the traditional sense, but the people around me, friends, other producers, and artists, shape it more than they probably realize.</p>
+        <br>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;Outside of music I'm into photography, writing, and apparently rebuilding my website on a regular basis. I have ADHD and jump between interests fast, which is honestly why music has stuck. I make it for fun, when I feel creative, with no pressure to be consistent. Most releases will be free. I'm not big on social media, so if you want to keep up, your best bet is right here, my Bandcamp, or YouTube at @RedtailWorks.</p>
+        <hr><br>
+<!-- button + textarea -->
+        
+<div style="display:flex; align-items:center; gap:8px;">
+  <a class="btn-slot" href="https://www.redtail.works" target="_blank" title="RedtailWorks">
+    <img src="webwall-media/redtailglitter.gif" alt="RedtailWorks">
+  </a>
+  <textarea readonly onclick="this.select()" style="
+    width:88px;
+    font-family:var(--font-body);
+    font-size:11px;
+    border:2px solid;
+    border-color:var(--bm) var(--bl) var(--bl) var(--bm);
+    padding:4px 6px;
+    color:var(--text);
+    background:#fff;
+    resize:none;
+    height:31px;
+  ">&lt;a href="https://www.redtail.works" target="_blank"&gt;&lt;img src="https://www.redtail.works/webwall-media/redtailglitter.gif" alt="RedtailWorks"&gt;&lt;/a&gt;</textarea>
+  <p>Hot-link Me!</p>
+  <a rel="me" href="https://furs.social/@redtailworks">Mastodon</a>
+</div>
+<hr class="rule">
+      
+<!-- Bandlab button -->      
+        
+        <iframe scrolling="no" style="border: 0;width: 100%;height: 33px;" src="https://bandcamp.com/band_follow_button_classic/3119070675"></iframe>
+      </div>
+    </div>
+  </div>
+  <div class="resize-bot" onmousedown="startResize(event,'box-about')"></div>
+</div>
+
+<!-- ── MUSIC ─────────────────────────────────────────────────── -->
+<div class="box minimized" id="box-music">
+  <div class="resize-top" onmousedown="startResizeTop(event,'box-music')"></div>
+  <div class="titlebar">
+    <div class="tb-left">
+      <span class="tb-icon">💿</span>
+      <span class="tb-text">Music</span>
+    </div>
+    <div class="tb-btns">
+      <button class="wbtn" onclick="toggleMin('box-music')" title="Minimize">_</button>
+      <button class="wbtn" onclick="shake(this)" title="Close">×</button>
+    </div>
+  </div>
+  <div class="win-body" style="height:400px;">
+    <div class="addr">📂 <span>redtail.works/music</span></div>
+
+    <a class="album-row" href="core-dump.html" target="_blank">
+      <img class="album-thumb" src="core-dump-media/AlbumCover1.webp" alt="Core Dump">
+      <div class="album-info">
+        <div class="album-title">Core Dump</div>
+        <div class="album-meta">2026 · breakcore / trap / speedcore · 8 tracks</div>
+        <span class="album-open">▶ Open Card</span>
+      </div>
+    </a>
+
+    <a class="album-row" href="happy-haunting.html" target="_blank">
+      <img class="album-thumb" src="happy-haunting-media/AlbumCover1.webp" alt="Happy Haunting">
+      <div class="album-info">
+        <div class="album-title">Happy Haunting</div>
+        <div class="album-meta">2026 · spooky / breakcore / house · 10 tracks</div>
+        <span class="album-open">▶ Open Card</span>
+      </div>
+    </a>
+
+  </div>
+  <div class="resize-bot" onmousedown="startResize(event,'box-music')"></div>
+</div>
+
+<!-- ── COMICS ────────────────────────────────────────────────── -->
+<div class="box minimized" id="box-comics">
+  <div class="resize-top" onmousedown="startResizeTop(event,'box-comics')"></div>
+  <div class="titlebar">
+    <div class="tb-left">
+      <span class="tb-icon">🗒️</span>
+      <span class="tb-text">My Comic</span>
+    </div>
+    <div class="tb-btns">
+      <button class="wbtn" onclick="toggleMin('box-comics')" title="Minimize">_</button>
+      <button class="wbtn" onclick="shake(this)" title="Close">×</button>
+    </div>
+  </div>
+  <div class="win-body" style="height:680px;">
+    <div class="addr">📂 <span>redtail.works/comics</span></div>
+
+    <div class="comic-viewer">
+      <div class="comic-img-wrap">
+        <img id="comic-img" src="" alt="Comic">
+      </div>
+      <div class="comic-nav">
+        <button class="comic-btn" id="comic-prev" onclick="comicNav(-1)">◀ Prev</button>
+        <span class="comic-counter" id="comic-counter"></span>
+        <button class="comic-btn" id="comic-next" onclick="comicNav(1)">Next ▶</button>
+      </div>
+      <div class="comic-open-wrap">
+        <a class="album-open" id="comic-open" href="#" target="_blank">⤢ Open Full Size</a>
+      </div>
+    </div>
+
+  </div>
+  <div class="resize-bot" onmousedown="startResize(event,'box-comics')"></div>
+</div>
+
+<!-- ── DISCORD ───────────────────────────────────────────────── -->
+<div class="box minimized" id="box-discord">
+  <div class="resize-top" onmousedown="startResizeTop(event,'box-discord')"></div>
+  <div class="titlebar">
+    <div class="tb-left">
+      <span class="tb-icon">🐾</span>
+      <span class="tb-text">Discord — Redtail's Cozy Hideout</span>
+    </div>
+    <div class="tb-btns">
+      <button class="wbtn" onclick="toggleMin('box-discord')" title="Minimize">_</button>
+      <button class="wbtn" onclick="shake(this)" title="Close">×</button>
+    </div>
+  </div>
+  <div class="win-body" style="height:420px;">
+    <div class="addr">📂 <span>redtail.works/discord</span></div>
+
+    <div id="discord-info" style="
+      display: flex; align-items: center; gap: 10px; padding: 8px;
+      background: var(--desktop);
+      border: 2px solid; border-color: var(--bm) var(--bl) var(--bl) var(--bm);
+      margin-bottom: 10px;
+    ">
+      <div style="
+        width: 48px; height: 48px;
+        background: linear-gradient(135deg, var(--bar-a), var(--bar-b));
+        border: 2px solid; border-color: var(--bl) var(--bm) var(--bm) var(--bl);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 22px; flex-shrink: 0;
+      ">🦊</div>
+      <div style="flex:1; min-width:0;">
+        <div style="font-family: var(--font-ui); font-size: 18px; letter-spacing: 0.05em;">
+          Redtail's Cozy Hideout
+        </div>
+        <div id="discord-status" style="font-size: 11px; color: var(--muted); margin-top: 2px;">
+          Loading member info...
+        </div>
+      </div>
+      <a id="discord-join-btn" href="#" target="_blank" style="
+        font-family: var(--font-ui); font-size: 16px; letter-spacing: 0.05em;
+        background: var(--chrome);
+        border: 2px solid; border-color: var(--bl) var(--bm) var(--bm) var(--bl);
+        padding: 2px 12px 0; color: var(--text); text-decoration: none;
+        flex-shrink: 0; display: inline-block;
+      "
+        onmouseover="this.style.background='var(--link)';this.style.color='#fff';this.style.borderColor='var(--link)'"
+        onmouseout="this.style.background='var(--chrome)';this.style.color='var(--text)';this.style.borderColor='var(--bl) var(--bm) var(--bm) var(--bl)'"
+      >Join ▶</a>
+    </div>
+
+    <div id="discord-members" style="
+      border: 2px solid; border-color: var(--bm) var(--bl) var(--bl) var(--bm);
+      padding: 6px 8px; margin-bottom: 10px; background: #fff;
+      min-height: 48px; font-size: 12px;
+    ">
+      <div style="font-family: var(--font-ui); font-size: 14px; margin-bottom: 4px; color: var(--muted);">
+        ONLINE NOW
+      </div>
+      <div id="discord-member-list" style="display:flex; flex-wrap:wrap; gap:6px; color: var(--muted);">
+        ...
+      </div>
+    </div>
+
+    <div style="border: 2px solid; border-color: var(--bm) var(--bl) var(--bl) var(--bm); overflow: hidden; line-height: 0;">
+      <iframe
+        src="https://discordapp.com/widget?id=1370880894595891200&theme=dark"
+        width="100%" height="250" allowtransparency="true" frameborder="0"
+        sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"
+        style="display:block;"
+      ></iframe>
+    </div>
+
+  </div>
+  <div class="resize-bot" onmousedown="startResize(event,'box-discord')"></div>
+</div>
+
+<!-- ── BLOG ──────────────────────────────────────────────────── -->
+<div class="box minimized" id="box-blog">
+  <div class="resize-top" onmousedown="startResizeTop(event,'box-blog')"></div>
+  <div class="titlebar">
+    <div class="tb-left">
+      <span class="tb-icon">📝</span>
+      <span class="tb-text">Blog</span>
+    </div>
+    <div class="tb-btns">
+      <button class="wbtn" onclick="toggleMin('box-blog')" title="Minimize">_</button>
+      <button class="wbtn" onclick="shake(this)" title="Close">×</button>
+    </div>
+  </div>
+  <div class="win-body" style="height:600px;">
+    <div class="addr">📂 <span>redtail.works/blog</span></div>
+    <div class="searchbar-wrap">
+      <input class="searchbar" id="blog-search" type="text" placeholder="search posts..." oninput="filterBlog()">
+      <button class="search-btn" onclick="filterBlog()">Find</button>
+    </div>
+    <div id="blog-posts">
+      <!--
+        ═══════════════════════════════════════════
+          HOW TO ADD A BLOG POST:
+          Copy one .blog-post block, update:
+          - data-text: searchable content (lowercase)
+          - .post-date: date string
+          - .post-title: title
+          - .post-body: content (can include <a> links)
+        ═══════════════════════════════════════════
+      -->
+      <div class="blog-post" data-text="Dropping Classes :(">
+        <div class="post-date">2026-04-17</div>
+        <div class="post-title">Dropping Classes :(</div>
+        <div class="post-body">I love College. I feel so good returning to school and expanding my knowledge! However, with my crippling AUDHD and ballincing full time school with my relationship, hobbies, and chores, going to college full time is a near impossible feat :( <br> So regrettably, I have had to cut back the number of classes I take each term. This change has also disqualified me from any income assistance through my GI bill... <br> Durning the rest of spring, and moving into summer term, I will mostly likely only be taking 1 class while finding work. <br><b>Now for the part I dont want to say</b><br>Becuse me and my husband are both dirt poor and live in a camper I had to build myself, and because even with us both working we will still be struggle bussin it... I would like to, despite it making me feel like a mooch, ask that you please check out my bandcamp. If you like any of the music please purchas something. I set the prices of everything to $10, with $4 being the standard. As albums get older tey will move to "Pay what you want." <br>I could really really use the extra support <3 Though, I am sorry I have to ask :( </div>
+      </div>      
+      <div class="blog-post" data-text="Making Comics Now!">
+        <div class="post-date">2026-04-07</div>
+        <div class="post-title">Making Comics Now!</div>
+        <div class="post-body">I'm taking a class on comics and it has inspired me to make my own! I can't draw so I'm making digital collages. Thank got for transformative works laws!<br>Anyway, dont expect regular uploads as just like my music and writing, the ADHD determines when I make things :(</div>
+      </div>       
+      <div class="blog-post" data-text="Ordered a New Midi Controller">
+        <div class="post-date">2026-04-02</div>
+        <div class="post-title">Ordered a New Midi Controller</div>
+        <div class="post-body">Decided to finally get some new gear! (I have been making everything in ableton with just mouse and keyboard) So I picked up an Akai Professional MPK Mini MK3!<br>But now I want the Sonicware Lofi-12 XT so I guess I have a new goal to save up for!<br>In the next few months I should be able to start live streaming music production on YT so hopefully that will help me make some money for more cool equiptment!</div>
+      </div>      
+      <div class="blog-post" data-text="First Day of Spring Term + Other Things">
+        <div class="post-date">2026-03-30</div>
+        <div class="post-title">First Day of Spring Term + Other Things</div>
+        <div class="post-body">First day of spring term and i'm already fed up! My History Prof is requiring the use of GPT in class which is stupid and dumb!<br>I got my first sale on BandCamp through so that was cool! And i set yp the red panda webring!<br>Added more friends to the WebWall so make sure to go check out their sites!</div>
+      </div>      
+      <div class="blog-post" data-text="welcome first post hello">
+        <div class="post-date">2026-03-28</div>
+        <div class="post-title">Welcome to the site!</div>
+        <div class="post-body">First post. Still getting everything set up. More soon.</div>
+      </div>
+      <div class="blog-post" data-text="core dump release album out now">
+        <div class="post-date">2026-03-28</div>
+        <div class="post-title">Core Dump is out now</div>
+        <div class="post-body">My new album Core Dump is live on <a href="https://redtailworks.bandcamp.com" target="_blank">Bandcamp</a>. Go listen!</div>
+      </div>
+    </div>
+    <div class="no-results" id="no-results">No posts found.</div>
+  </div>
+  <div class="resize-bot" onmousedown="startResize(event,'box-blog')"></div>
+</div>
+
+<!-- ── ESSAYS ────────────────────────────────────────────────── -->
+<div class="box minimized" id="box-essays">
+  <div class="resize-top" onmousedown="startResizeTop(event,'box-essays')"></div>
+  <div class="titlebar">
+    <div class="tb-left">
+      <span class="tb-icon">📄</span>
+      <span class="tb-text">Essays</span>
+    </div>
+    <div class="tb-btns">
+      <button class="wbtn" onclick="toggleMin('box-essays')" title="Minimize">_</button>
+      <button class="wbtn" onclick="shake(this)" title="Close">×</button>
+    </div>
+  </div>
+  <div class="win-body" style="height:400px;">
+    <div class="addr">📂 <span>redtail.works/essays</span></div>
+
+    <!--
+      ═══════════════════════════════════════════
+        HOW TO ADD AN ESSAY:
+        Copy one .essay-row block and update:
+        - href: path to your PDF (essays/filename.pdf)
+        - .essay-title: title of the essay
+        - .essay-date: date written/published
+        - .essay-desc: short description
+      ═══════════════════════════════════════════
+    -->
+
+    <a class="essay-row" href="essays/Trusting Students With Difficult Books_ Why School Book Bans Weaken Critical Thinking.pdf" target="_blank">
+      <div class="essay-header">
+        <span class="essay-title">Trusting Students With Difficult Books</span>
+        <span class="essay-date">2/24/2026</span>
+      </div>
+      <div class="essay-desc">An argument aginst the banning of books</div>
+      <span class="essay-open">▶ Open PDF</span>
+    </a>
+
+    <a class="essay-row" href="essays/Starting College Later in Life.pdf" target="_blank">
+      <div class="essay-header">
+        <span class="essay-title">Starting College Later in Life</span>
+        <span class="essay-date">1/26/2026</span>
+      </div>
+      <div class="essay-desc">Interview with an older college student & why starting college later is okay.</div>
+      <span class="essay-open">▶ Open PDF</span>
+    </a>
+
+  </div>
+  <div class="resize-bot" onmousedown="startResize(event,'box-essays')"></div>
+</div>
+
+<!-- ── WEBWALL ────────────────────────────────────────────────── -->
+<div class="box minimized" id="box-webwall">
+  <div class="resize-top" onmousedown="startResizeTop(event,'box-webwall')"></div>
+  <div class="titlebar">
+    <div class="tb-left">
+      <span class="tb-icon">🌐</span>
+      <span class="tb-text">Webwall — 88×31</span>
+    </div>
+    <div class="tb-btns">
+      <button class="wbtn" onclick="toggleMin('box-webwall')" title="Minimize">_</button>
+      <button class="wbtn" onclick="shake(this)" title="Close">×</button>
+    </div>
+  </div>
+  <div class="win-body" style="height:180px;">
+    <div class="addr">📂 <span>redtail.works/webwall</span></div>
+    <div class="button-wall">
+      <!--
+        HOW TO ADD A BUTTON:
+        <a class="btn-slot" href="URL" target="_blank" title="Site Name">
+          <img src="webwall-media/filename.gif" alt="Site Name">
+        </a>
+      -->
+      <a class="btn-slot" href="https://yiothepanda.neocities.org/" target="_blank" title="Yio's Digital Lab">
+          <img src="https://yiothepanda.neocities.org/yiotheredpanda.gif" alt="Yio's Digital Lab">
+      </a>      
+      <a class="btn-slot" href="https://sillywah.cc/" target="_blank" title="Silly Wah">
+          <img src="https://sillywah.cc/img/button/sillywah.gif" alt="Silly Wah">
+      </a>      
+      <a class="btn-slot" href="https://matcha.nekoweb.org/" target="_blank" title="MATCHA.EXE">
+          <img src="https://matcha.nekoweb.org/resources/buttons/Matcha%20Nekoweb%20Button.gif" alt="MATCHA.EXE">
+      </a>
+      
+      <a class="btn-slot" href="https://abode.nekoweb.org/home.html?v=1.0.1" target="_blank" title="abode">
+          <img src="https://raw.githubusercontent.com/rarkus/i/refs/heads/main/gif/abodebutton.gif" alt="abode">
+      </a>
+      
+      <a class="btn-slot" href="https://jembles.nekoweb.org/links.html" target="_blank" title="jembles notronbo ">
+          <img src="https://jembles.nekoweb.org/img/jemblesbutton1.gif" alt="jembles notronbo ">
+      </a>
+      
+      <a class="btn-slot" href="https://oddangelmusic.nekoweb.org/" target="_blank" title="ODD.ANGEL.MUSIC">
+          <img src="https://oddangelmusic.nekoweb.org/images/logo.gif" alt="ODD.ANGEL.MUSIC">
+      </a>      
+      
+      <a class="btn-slot" href="https://brooklynights.nekoweb.org/" target="_blank" title="brooklynights">
+          <img src="https://brooklynights.nekoweb.org/content/buttons/own/gakvubut.gif" alt="brooklynights">
+      </a>
+      
+      <a class="btn-slot" href="https://webtiles.kicya.net/#www.redtail.works" target="_blank" title="WebTiles">
+          <img src="webwall-media/webtile.png" alt="WebTiles">
+      </a>
+      
+      <a class="btn-slot" href="https://codexarchonic.nekoweb.org/" target="_blank" title="Codex Archonic">
+          <img src="https://codexarchonic.nekoweb.org/banner.gif" alt="Codex Archonic">
+      </a>
+      
+      <a class="btn-slot" href="https://kuurp.nekoweb.org/" target="_blank" title="Kuurp's site">
+          <img src="https://kuurp.nekoweb.org/assets/button.png" alt="Kuurp's site">
+      </a>
+      
+      <a class="btn-slot" href="https://virtualobserver.moe/home" target="_blank" title="virtualobserver">
+          <img src="webwall-media/VirtualObserver.png" alt="virtualobserver.moe">
+      </a>
+      
+      <a class="btn-slot" href="https://goatpup.party/" target="_blank" title="goatpup.party">
+          <img src="webwall-media/goatgirlclover.gif" alt="goatpup.party">
+        </a>
+        
+      <a class="btn-slot" href="https://gormy.net/" target="_blank" title="gormy.net">
+          <img src="webwall-media/Gormy.gif" alt="gormy.net">
+      </a>
+      
+      <a class="btn-slot" href="https://bottledf0x.newgrounds.com/" target="_blank" title="BottledFox (newgrounds)">
+          <img src="webwall-media/bottledfox.gif" alt="NewGrounds">
+        </a>
+        
+      <a class="btn-slot" href="https://redtailworks.bandcamp.com/" target="_blank" title="RedtailWorks">
+          <img src="webwall-media/redtailglitter.gif" alt="RedtailWorks">
+      </a>
+      
+      <div class="btn-slot empty">+ add</div>
+      <div class="btn-slot empty">+ add</div>
+      <div class="btn-slot empty">+ add</div>
+      <div class="btn-slot empty">+ add</div>
+      <div class="btn-slot empty">+ add</div>
+      <div class="btn-slot empty">+ add</div>
+      <div class="btn-slot empty">+ add</div>
+      <div class="btn-slot empty">+ add</div>
+      <div class="btn-slot empty">+ add</div>
+      <div class="btn-slot empty">+ add</div>
+      <div class="btn-slot empty">+ add</div>
+      <div class="btn-slot empty">+ add</div>
+    </div>
+    <p class="wall-note">Want your button here? Send a 88×31 to <a href="mailto:">itsme@redtail.works<a></p>
+  </div>
+  <div class="resize-bot" onmousedown="startResize(event,'box-webwall')"></div>
+</div>
+
+<!-- ── WEBRINGS ───────────────────────────────────────────────── -->
+<div class="box minimized" id="box-webrings">
+  <div class="resize-top" onmousedown="startResizeTop(event,'box-webrings')"></div>
+  <div class="titlebar">
+    <div class="tb-left">
+      <span class="tb-icon">🔗</span>
+      <span class="tb-text">Webrings</span>
+    </div>
+    <div class="tb-btns">
+      <button class="wbtn" onclick="toggleMin('box-webrings')" title="Minimize">_</button>
+      <button class="wbtn" onclick="shake(this)" title="Close">×</button>
+    </div>
+  </div>
+  <div class="win-body" style="height:250px;">
+    <div class="addr">📂 <span>redtail.works/webrings</span></div>
+    <div class="webring-list">
+      <!--
+        HOW TO ADD A WEBRING:
+        Paste your webring's HTML widget inside a .webring-item div.
+        The label above it is optional.
+        Example:
+        <div class="webring-item">
+          <div class="webring-label">Furry Webring</div>
+          <div class="webring-widget">
+            [paste widget code here]
+          </div>
+        </div>
+      -->
+        <div class="webring-item">
+          <div class="webring-label">Red Panda Web Ring</div>
+          <div class="webring-widget">
+            <a href="https://redpandaring.nekoweb.org/random.html">&lt;&lt;&lt;</a> 
+            <a href="https://redpandaring.nekoweb.org/"><img src="https://redpandaring.nekoweb.org/redpandaring88x31.gif" width="88" height="31" alt="Red Panda Ring"></a> 
+            <a href="https://redpandaring.nekoweb.org/random.html">&gt;&gt;&gt;</a>
+          </div>
+        </div>
+        <div class="webring-item">
+          <div class="webring-label">A.M.I.G.A.</div>
+          <div class="webring-widget">
+           <div id='amiga'>
+             <script type="text/javascript" src="https://nicois.gay/amiga/onionring-variables.js"></script>
+             <script type="text/javascript" src="https://nicois.gay/amiga/onionring-widget.js"></script>
+            </div>
+          </div>
+        </div>      
+        <div class="webring-item">
+          <div class="webring-label">Musicians Webring</div>
+          <div class="webring-widget">
+            <div id='musicians-ring'>
+              <script type="text/javascript" src="https://lydels.neocities.org/musicianswebring/onionring-variables.js"></script>
+              <script type="text/javascript" src="https://lydels.neocities.org/musicianswebring/onionring-widget.js"></script>
+            </div>
+          </div>
+        </div>
+        <div class="webring-item">
+          <div class="webring-label">Soweli Ring</div>
+          <div class="webring-widget">
+            <p id="soweliring" style="display: flex; justify-content: space-between; width: 16em;"><a href="https://thedressedmolerat.github.io/webring?name=Redtail&to=skipprevious">⇇</a> <a href="https://thedressedmolerat.github.io/webring?name=Redtail&to=previous">&lt;</a> <a href="https://thedressedmolerat.github.io/webring?to=random">⇅</a> <a href="https://thedressedmolerat.github.io/webring">soweli ring</a> <a href="https://thedressedmolerat.github.io/webring?name=Redtail&to=next">&gt;</a> <a href="https://thedressedmolerat.github.io/webring?name=Redtail&to=skipnext">⇉</a></p>
+          </div>
+        </div>
+      <div class="otswebring">
+    <a href="https://webring.obeythesystem.com/page?=previous" rel="nofollow"><</a>
+    <a href="https://webring.obeythesystem.com/" rel="nofollow">
+    <img style="vertical-align: middle;" src="https://webring.obeythesystem.com/ots_webring_button_1.gif" alt="OTS Webring Button"></a>
+    <a href="https://webring.obeythesystem.com/page?=next" rel="nofollow">></a>
+      </div>
+        <div class="webring-item">
+          <div class="webring-label">Retronaught Webring</div>
+          <div class="webring-widget">
+            <a href='https://webring.dinhe.net/prev/https://www.redtail.works/'>Previous</a>
+            · <a href="https://webring.dinhe.net/"><img src="retronaught.png" alt="Retronaut Webring" width="88" height="31" style="vertical-align:middle;"></a> ·
+            <a href='https://webring.dinhe.net/next/https://www.redtail.works/'>Next</a>
+          </div>
+        </div>
+      <div class="webring-item">
+        <div class="webring-label">Transing the Internet!</div>
+        <div class="webring-widget">
+          <script src="https://transring.neocities.org/ring.js" data-widget="nb"></script>
+        </div>
+      </div>
+      <div class="webring-item">
+        <div class="webring-label">Hotline Webring</div>
+        <div class="webring-widget">
+              <a href="https://hotlinewebring.club/RTW/previous">← prev</a>
+            · <a href="https://hotlinewebring.club/"><img src="hotline.png" alt="Hotline Webring" width="88" height="31" style="vertical-align:middle;"></a> ·
+              <a href="https://hotlinewebring.club/RTW/next">next →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="resize-bot" onmousedown="startResize(event,'box-webrings')"></div>
+</div>
+
+<!-- ── CHAT ─────────────────────────────────────────────────── -->
+<div class="box minimized" id="box-chat">
+  <div class="resize-top" onmousedown="startResizeTop(event,'box-chat')"></div>
+  <div class="titlebar">
+    <div class="tb-left">
+      <span class="tb-icon">💬</span>
+      <span class="tb-text">Chat</span>
+    </div>
+    <div class="tb-btns">
+      <button class="wbtn" onclick="toggleMin('box-chat')" title="Minimize">_</button>
+      <button class="wbtn" onclick="shake(this)" title="Close">×</button>
+    </div>
+  </div>
+  <div class="win-body" style="height:800px;">
+    <div class="addr">📂 <span>redtail.works/chat</span></div>
+<div id="c_widget"></div>
+  </div>
+  <div class="resize-bot" onmousedown="startResize(event,'box-chat')"></div>
+</div>
+
+<script src="comment-widget.js"></script>
+
+<script>
+// ── DISCORD  ──────────────────────────────────────────────────
+(function() {
+  const WIDGET_URL = 'https://discordapp.com/api/guilds/1370880894595891200/widget.json';
+
+  fetch(WIDGET_URL)
+    .then(r => r.json())
+    .then(data => {
+      if (data.instant_invite) {
+        document.getElementById('discord-join-btn').href = data.instant_invite;
+      }
+
+      const onlineCount = data.presence_count ?? (data.members ? data.members.length : 0);
+      document.getElementById('discord-status').textContent =
+        `🟢 ${onlineCount} online`;
+
+      const listEl = document.getElementById('discord-member-list');
+      if (data.members && data.members.length > 0) {
+        listEl.innerHTML = data.members.map(m => `
+          <span style="
+            display:inline-flex; align-items:center; gap:4px;
+            background: var(--desktop);
+            border: 2px solid; border-color: var(--bl) var(--bm) var(--bm) var(--bl);
+            padding: 1px 7px 1px 4px;
+            font-family: var(--font-ui); font-size: 13px;
+          ">
+            <img src="${m.avatar_url}" width="16" height="16"
+              style="border:1px solid var(--bm); image-rendering:pixelated;"
+              onerror="this.style.display='none'"
+            >
+            ${m.username}
+          </span>
+        `).join('');
+      } else {
+        listEl.textContent = 'No one online right now.';
+      }
+    })
+    .catch(() => {
+      document.getElementById('discord-status').textContent = 'Could not load server info.';
+      document.getElementById('discord-member-list').textContent = '—';
+    });
+})();
+
+// ── COMICS ───────────────────────────────────────────────────
+// ↓ UPDATE THIS NUMBER when you add a new comic
+const COMIC_TOTAL = 1; // change to however many you have
+
+let comicCurrent = COMIC_TOTAL;
+
+function comicLoad(n) {
+  comicCurrent = n;
+  const src = `comics/comic${n}.png`;
+  document.getElementById('comic-img').src = src;
+  document.getElementById('comic-open').href = src;
+  document.getElementById('comic-counter').textContent = `#${n} / ${COMIC_TOTAL}`;
+  document.getElementById('comic-prev').disabled = n <= 1;
+  document.getElementById('comic-next').disabled = n >= COMIC_TOTAL;
+}
+
+function comicNav(dir) {
+  const next = comicCurrent + dir;
+  if (next >= 1 && next <= COMIC_TOTAL) comicLoad(next);
+}
+
+// Load most recent on startup
+comicLoad(COMIC_TOTAL);
+
+// ── MINIMIZE ─────────────────────────────────────────────────
+function toggleMin(id) {
+  document.getElementById(id).classList.toggle('minimized');
+}
+
+// ── SHAKE (close attempt) ─────────────────────────────────────
+function shake(btn) {
+  const box = btn.closest('.box');
+  box.classList.remove('shaking');
+  void box.offsetWidth;
+  box.classList.add('shaking');
+  box.addEventListener('animationend', () => box.classList.remove('shaking'), { once: true });
+}
+
+// ── RESIZE BOTTOM ─────────────────────────────────────────────
+let resizing = null;
+
+function startResize(e, id) {
+  e.preventDefault();
+  const box = document.getElementById(id);
+  const body = box.querySelector('.win-body');
+  resizing = {
+    body,
+    startY: e.clientY,
+    startH: body.offsetHeight,
+    dir: 'bottom'
+  };
+}
+
+function startResizeTop(e, id) {
+  e.preventDefault();
+  const box = document.getElementById(id);
+  const body = box.querySelector('.win-body');
+  resizing = {
+    body,
+    startY: e.clientY,
+    startH: body.offsetHeight,
+    dir: 'top'
+  };
+}
+
+document.addEventListener('mousemove', e => {
+  if (!resizing) return;
+  const { body, startY, startH, dir } = resizing;
+  const delta = dir === 'bottom'
+    ? e.clientY - startY
+    : startY - e.clientY;
+  const newH = Math.max(60, Math.min(startH + delta, 800));
+  body.style.height = newH + 'px';
+});
+
+document.addEventListener('mouseup', () => { resizing = null; });
+
+// ── BLOG SEARCH ───────────────────────────────────────────────
+function filterBlog() {
+  const q = document.getElementById('blog-search').value.toLowerCase().trim();
+  const posts = document.querySelectorAll('.blog-post');
+  let visible = 0;
+  posts.forEach(p => {
+    const text = (p.dataset.text || '') + ' ' + p.textContent.toLowerCase();
+    const show = !q || text.includes(q);
+    p.classList.toggle('hidden', !show);
+    if (show) visible++;
+  });
+  document.getElementById('no-results').style.display = visible === 0 ? 'block' : 'none';
+}
+</script>
+</body>
+</html>

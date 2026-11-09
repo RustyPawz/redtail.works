@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Core Dump — RedtailWorks</title>
+<meta property="og:title" content="Core Dump — RedtailWorks">
+<meta property="og:description" content="breakcore / trap / speedcore · Portland, OR">
+<meta property="og:image" content="core-dump-media/AlbumCover1.webp">
+<meta property="og:url" content="https://redtail.works/core-dump">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Bebas+Neue&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --cyan:    #00f5ff;
+    --magenta: #ff00cc;
+    --purple:  #7b00ff;
+    --dark:    #080808;
+    --card-w:  520px;
+    --card-h:  560px;
+  }
+
+  html, body {
+    height: 100%;
+  }
+
+  body {
+    background: var(--dark);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    font-family: 'Space Mono', monospace;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* grain overlay */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 0; opacity: 0.4;
+  }
+
+  /* ambient blobs */
+  .blob {
+    position: fixed; border-radius: 50%;
+    filter: blur(120px); opacity: 0.12;
+    pointer-events: none; z-index: 0;
+  }
+  .blob-1 { width:400px;height:400px;background:var(--purple);top:-100px;left:-100px; }
+  .blob-2 { width:300px;height:300px;background:var(--cyan);bottom:-80px;right:-80px; }
+  .blob-3 { width:250px;height:250px;background:var(--magenta);bottom:20%;left:10%; }
+
+  /* ── CARD SCENE ── */
+  .scene {
+    width: var(--card-w);
+    height: var(--card-h);
+    perspective: 1200px;
+    position: relative; z-index: 1;
+  }
+
+  .card {
+    width: 100%; height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.75s cubic-bezier(0.4, 0.2, 0.2, 1);
+    will-change: transform;
+  }
+  .card.flipped { transform: rotateY(180deg); }
+
+  .face {
+    position: absolute; inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  /* ── FRONT ── */
+  .front { background: #000; cursor: pointer; }
+
+  .front .cover-img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    position: absolute; inset: 0;
+    transition: opacity 0.4s ease;
+  }
+
+  /* gloss */
+  .front::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg,
+      rgba(255,255,255,0.07) 0%,
+      transparent 50%,
+      rgba(0,0,0,0.18) 100%);
+    pointer-events: none; z-index: 2;
+  }
+
+  .front-label {
+    position: absolute; bottom: 14px; right: 16px;
+    z-index: 3; font-size: 9px; letter-spacing: 0.2em;
+    text-transform: uppercase; color: rgba(255,255,255,0.3);
+    pointer-events: none;
+  }
+
+  /* ── BACK ── */
+  .back {
+    background: #0a0a0a;
+    transform: rotateY(180deg);
+    display: flex; flex-direction: column;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  /* corner accents */
+  .corner {
+    position: absolute; width: 14px; height: 14px;
+    pointer-events: none; z-index: 5;
+  }
+  .corner-tl { top:8px;left:8px;   border-top:1px solid var(--cyan);border-left:1px solid var(--cyan); }
+  .corner-tr { top:8px;right:8px;  border-top:1px solid var(--cyan);border-right:1px solid var(--cyan); }
+  .corner-bl { bottom:8px;left:8px; border-bottom:1px solid var(--cyan);border-left:1px solid var(--cyan); }
+  .corner-br { bottom:8px;right:8px;border-bottom:1px solid var(--cyan);border-right:1px solid var(--cyan); }
+
+  /* back header */
+  .back-header {
+    padding: 18px 24px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    display: flex; justify-content: space-between; align-items: flex-end;
+    flex-shrink: 0;
+  }
+
+  .back-header .titles { display: flex; flex-direction: column; gap: 2px; }
+
+  .back-header .artist {
+    font-size: 9px; letter-spacing: 0.22em;
+    text-transform: uppercase; color: rgba(255,255,255,0.3);
+  }
+
+  .back-header .album-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 38px; letter-spacing: 0.04em; line-height: 1; color: #fff;
+    text-shadow: 2px 0 0 var(--cyan), -2px 0 0 var(--magenta);
+  }
+
+  .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+
+  .next-thumb {
+    width: 44px; height: 44px; object-fit: cover;
+    border-radius: 2px; opacity: 0.45;
+    border: 1px solid rgba(255,255,255,0.1);
+    transition: opacity 0.3s;
+  }
+
+  .variant-dots { display: flex; gap: 5px; }
+  .dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    transition: background 0.3s, transform 0.3s;
+  }
+  .dot.active { background: var(--cyan); transform: scale(1.4); }
+
+  /* ── TRACKLIST ── */
+  .tracklist {
+    flex: 1; padding: 6px 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.08) transparent;
+  }
+  .tracklist::-webkit-scrollbar { width: 3px; }
+  .tracklist::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+  .track {
+    display: grid;
+    grid-template-columns: 32px 1fr 40px 22px;
+    align-items: center;
+    gap: 8px; padding: 8px 24px;
+    cursor: pointer; position: relative;
+    transition: background 0.15s;
+  }
+  .track:hover  { background: rgba(255,255,255,0.04); }
+  .track.playing { background: rgba(0,245,255,0.05); }
+  .track.playing .track-name { color: var(--cyan); }
+  .track.playing .track-num  { color: var(--cyan); }
+  .track.unavailable { opacity: 0.3; cursor: default; }
+
+  .track-num {
+    font-size: 10px; color: rgba(255,255,255,0.2);
+    text-align: right; transition: color 0.2s;
+  }
+  .track-name {
+    font-size: 11.5px; color: rgba(255,255,255,0.7);
+    letter-spacing: 0.02em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    transition: color 0.2s;
+  }
+  .track-dur {
+    font-size: 10px; color: rgba(255,255,255,0.2);
+    text-align: right; white-space: nowrap;
+  }
+
+  .track-icon {
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.15s;
+  }
+  .track:not(.unavailable):hover .track-icon,
+  .track.playing .track-icon { opacity: 1; }
+
+  .play-svg, .pause-svg { width: 11px; height: 11px; fill: var(--cyan); }
+  .track:not(.playing) .pause-svg { display: none; }
+  .track.playing .play-svg { display: none; }
+
+  .progress-bar {
+    position: absolute; bottom: 0; left: 24px; right: 24px;
+    height: 1px; background: rgba(255,255,255,0.06); display: none;
+  }
+  .track.playing .progress-bar { display: block; }
+  .progress-fill { height: 100%; background: var(--cyan); width: 0%; }
+
+  /* ── FOOTER ── */
+  .back-footer {
+    padding: 10px 24px 14px;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    display: flex; justify-content: space-between; align-items: center;
+    flex-shrink: 0;
+  }
+
+  .links { display: flex; flex-direction: column; gap: 3px; }
+  .links a {
+    font-size: 8.5px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: rgba(255,255,255,0.22); text-decoration: none;
+    transition: color 0.2s;
+  }
+  .links a:hover { color: var(--cyan); }
+
+  .flip-btn {
+    font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: rgba(255,255,255,0.2); cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 5px 10px; border-radius: 2px;
+    background: none; font-family: 'Space Mono', monospace;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .flip-btn:hover { color: var(--cyan); border-color: var(--cyan); }
+
+  /* ── HINT ── */
+  .hint {
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: rgba(255,255,255,0.16); z-index: 1; user-select: none;
+    display: flex; align-items: center; gap: 8px;
+    transition: opacity 0.3s;
+  }
+  .hint::before, .hint::after {
+    content: ''; width: 40px; height: 1px;
+    background: rgba(255,255,255,0.08);
+  }
+
+  /* ── GLOBAL PROGRESS BAR ── */
+  .player-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    height: 2px; background: rgba(255,255,255,0.04); z-index: 10;
+  }
+  .player-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--purple), var(--cyan));
+    width: 0%; transition: width 0.5s linear;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 560px) {
+    :root { --card-w: 94vw; --card-h: 94vw; }
+    .back-header .album-title { font-size: 28px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<div class="blob blob-3"></div>
+
+<div class="scene">
+  <div class="card" id="card">
+
+    <!-- FRONT -->
+    <div class="face front" onclick="flipCard()">
+      <img class="cover-img" id="cover-0" src="core-dump-media/AlbumCover1.webp" alt="Core Dump — Cover 1">
+      <img class="cover-img" id="cover-1" src="core-dump-media/AlbumCover2.webp" alt="Core Dump — Cover 2" style="opacity:0;">
+      <img class="cover-img" id="cover-2" src="core-dump-media/AlbumCover3.webp" alt="Core Dump — Cover 3" style="opacity:0;">
+      <span class="front-label">flip for tracklist ↻</span>
+    </div>
+
+    <!-- BACK -->
+    <div class="face back">
+      <div class="corner corner-tl"></div>
+      <div class="corner corner-tr"></div>
+      <div class="corner corner-bl"></div>
+      <div class="corner corner-br"></div>
+
+      <div class="back-header">
+        <div class="titles">
+          <span class="artist">RedtailWorks</span>
+          <span class="album-title">Core Dump</span>
+        </div>
+        <div class="header-right">
+          <img class="next-thumb" id="next-thumb" src="core-dump-media/AlbumCover2.webp" alt="Next cover">
+          <div class="variant-dots">
+            <div class="dot active" id="dot-0"></div>
+            <div class="dot" id="dot-1"></div>
+            <div class="dot" id="dot-2"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tracklist" id="tracklist"></div>
+
+      <div class="back-footer">
+        <div class="links">
+          <a href="https://redtail.works" target="_blank">redtail.works</a>
+          <a href="https://redtailworks.bandcamp.com" target="_blank">bandcamp</a>
+          <a href="https://foxiren.carrd.co/" target="_blank">art: foxiren</a>
+          <a href="https://www.instagram.com/0foxiren" target="_blank">foxiren on ig</a>
+        </div>
+        <button class="flip-btn" onclick="flipCard()">↻ flip</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="hint" id="hint">click cover to flip</div>
+<div class="player-bar"><div class="player-bar-fill" id="bar-fill"></div></div>
+<audio id="audio-player"></audio>
+
+<script>
+  // ── CONFIG ───────────────────────────────────────────────────────────────
+  // All media lives in core-dump-media/
+  // Filenames must match exactly (case-sensitive on Linux servers).
+  // Audio format-sniffing tries each extension in order until one loads.
+
+  const MEDIA = 'core-dump-media/';
+
+  const covers = [
+    MEDIA + 'AlbumCover1.webp',
+    MEDIA + 'AlbumCover2.webp',
+    MEDIA + 'AlbumCover3.webp',
+  ];
+
+  const tracks = [
+    { title: 'RedtailWorks - Core Dump - 01 Fracture',    display: 'Fracture'    },
+    { title: 'RedtailWorks - Core Dump - 02 Glass',       display: 'Glass'       },
+    { title: 'RedtailWorks - Core Dump - 03 God Machine', display: 'God Machine' },
+    { title: 'RedtailWorks - Core Dump - 04 Manhunt',     display: 'Manhunt'     },
+    { title: 'RedtailWorks - Core Dump - 05 Puddles',     display: 'Puddles'     },
+    { title: 'RedtailWorks - Core Dump - 06 Rot',         display: 'Rot'         },
+    { title: 'RedtailWorks - Core Dump - 07 Specter',     display: 'Specter'     },
+    { title: 'RedtailWorks - Core Dump - 08 japaneese',  display: '優雅な終了'  },
+  ];
+
+  // Formats tried in order — mp3 first since that's what we're serving
+  const FORMATS = ['mp3', 'flac', 'wav', 'ogg', 'aac', 'm4a', 'opus'];
+
+  // ── STATE ────────────────────────────────────────────────────────────────
+  let isFlipped      = false;
+  let currentVariant = 0;
+  let currentTrack   = -1;
+  let isPlaying      = false;
+
+  const card    = document.getElementById('card');
+  const audio   = document.getElementById('audio-player');
+  const barFill = document.getElementById('bar-fill');
+  const hint    = document.getElementById('hint');
+
+  // Resolved src cache: title → { src, duration } | null
+  const resolved = {};
+
+  // ── FORMAT RESOLUTION ────────────────────────────────────────────────────
+  function resolveTrack(title) {
+    if (resolved[title] !== undefined) return Promise.resolve(resolved[title]);
+
+    return new Promise(resolve => {
+      let idx = 0;
+      function tryNext() {
+        if (idx >= FORMATS.length) { resolved[title] = null; resolve(null); return; }
+        const src = `${MEDIA}${encodeURIComponent(title)}.${FORMATS[idx++]}`;
+        const probe = new Audio();
+        probe.preload = 'metadata';
+        probe.src = src;
+        probe.addEventListener('loadedmetadata', () => {
+          resolved[title] = { src, duration: probe.duration };
+          resolve(resolved[title]);
+        });
+        probe.addEventListener('error', tryNext);
+      }
+      tryNext();
+    });
+  }
+
+  function fmt(s) {
+    if (!isFinite(s) || s <= 0) return '—:——';
+    return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+  }
+
+  // ── BUILD TRACKLIST ──────────────────────────────────────────────────────
+  const list = document.getElementById('tracklist');
+
+  tracks.forEach((t, i) => {
+    const row = document.createElement('div');
+    row.className = 'track';
+    row.id = `track-${i}`;
+    row.innerHTML = `
+      <span class="track-num">${String(i + 1).padStart(2, '0')}</span>
+      <span class="track-name">${t.display}</span>
+      <span class="track-dur" id="dur-${i}">…</span>
+      <span class="track-icon">
+        <svg class="play-svg"  viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+        <svg class="pause-svg" viewBox="0 0 24 24"><rect x="5" y="3" width="4" height="18"/><rect x="15" y="3" width="4" height="18"/></svg>
+      </span>
+      <div class="progress-bar"><div class="progress-fill" id="prog-${i}"></div></div>
+    `;
+    row.addEventListener('click', () => playTrack(i));
+    list.appendChild(row);
+
+    // Pre-load duration
+    resolveTrack(t.title).then(result => {
+      const durEl = document.getElementById(`dur-${i}`);
+      if (result) {
+        durEl.textContent = fmt(result.duration);
+      } else {
+        durEl.textContent = '—:——';
+        row.classList.add('unavailable');
+        row.title = 'File not found in core-dump-media/';
+      }
+    });
+  });
+
+  // ── PLAYBACK ─────────────────────────────────────────────────────────────
+  function playTrack(i) {
+    const row = document.getElementById(`track-${i}`);
+    if (row.classList.contains('unavailable')) return;
+
+    if (currentTrack === i && isPlaying) {
+      audio.pause();
+      isPlaying = false;
+      setActive(-1);
+      return;
+    }
+
+    resolveTrack(tracks[i].title).then(result => {
+      if (!result) return;
+      currentTrack = i;
+      audio.src = result.src;
+      audio.play().catch(e => console.warn('Playback:', e));
+      isPlaying = true;
+      setActive(i);
+    });
+  }
+
+  function setActive(idx) {
+    document.querySelectorAll('.track').forEach(el => el.classList.remove('playing'));
+    if (idx >= 0) document.getElementById(`track-${idx}`).classList.add('playing');
+  }
+
+  audio.addEventListener('timeupdate', () => {
+    if (!audio.duration) return;
+    const pct = (audio.currentTime / audio.duration) * 100;
+    barFill.style.width = pct + '%';
+    if (currentTrack >= 0) {
+      const prog = document.getElementById(`prog-${currentTrack}`);
+      if (prog) prog.style.width = pct + '%';
+    }
+  });
+
+  audio.addEventListener('ended', () => {
+    // Find next playable track
+    let next = (currentTrack + 1) % tracks.length;
+    const start = next;
+    while (document.getElementById(`track-${next}`).classList.contains('unavailable')) {
+      next = (next + 1) % tracks.length;
+      if (next === start) return; // all unavailable
+    }
+    playTrack(next);
+    document.getElementById(`track-${next}`).scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+
+  audio.addEventListener('play',  () => { isPlaying = true; });
+  audio.addEventListener('pause', () => { isPlaying = false; });
+
+  // ── FLIP ─────────────────────────────────────────────────────────────────
+  function flipCard() {
+    isFlipped = !isFlipped;
+    card.classList.toggle('flipped', isFlipped);
+    hint.textContent = isFlipped ? 'click ↻ to flip back' : 'click cover to flip';
+
+    if (!isFlipped) {
+      setTimeout(() => {
+        currentVariant = (currentVariant + 1) % covers.length;
+        showCover(currentVariant);
+      }, 375);
+    }
+  }
+
+  // ── COVER ROTATION ───────────────────────────────────────────────────────
+  function showCover(idx) {
+    covers.forEach((_, i) => {
+      document.getElementById(`cover-${i}`).style.opacity = i === idx ? '1' : '0';
+    });
+    for (let i = 0; i < 3; i++) {
+      document.getElementById(`dot-${i}`).classList.toggle('active', i === idx);
+    }
+    document.getElementById('next-thumb').src = covers[(idx + 1) % covers.length];
+  }
+</script>
+</body>
+</html>

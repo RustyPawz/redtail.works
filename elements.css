@@ -1,0 +1,179 @@
+@import url('https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;700&display=swap');
+
+/* ============================================================
+   SITE BOX
+   ============================================================ */
+
+.site-box {
+    background: #ffffff;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    box-shadow: 2px 2px 0 #000;
+    font-family: 'IBM Plex Mono', monospace;
+    overflow: visible;
+    position: relative;
+    min-height: 180px;
+}
+.site-box::before {
+    content: '🐾 www.redtail.works';
+    display: block;
+    background: linear-gradient(90deg, #2d006b, #8800ee);
+    color: #fff;
+    font-family: 'VT323', monospace;
+    font-size: 15px;
+    letter-spacing: 0.05em;
+    padding: 3px 6px 2px;
+    position: relative;
+    z-index: 1;
+}
+.site-box > a::before { display: none; }
+.site-box > a {
+    display: block;
+    text-decoration: none;
+}
+.site-box .sitefeature { display: none; }
+.site-box .top-dot { display: none; }
+.site-box .site-title { display: none; }
+.site-box > a > p {
+    color: transparent;
+    font-size: 0 !important;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+}
+.site-box > a > p::before {
+    content: 'You are about to enter the party zone!';
+    display: block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px !important;
+    color: #000;
+    margin: 16px 16px 0;
+}
+.site-box > a > p > span {
+    font-size: 11px !important;
+    color: #5500bb !important;
+    display: block !important;
+    text-decoration: underline !important;
+    position: absolute !important;
+    bottom: 6px !important;
+    left: 8px !important;
+    margin: 0 !important;
+}
+.site-box span.follow-www-redtail-works {
+    display: block;
+    font-family: 'VT323', monospace;
+    font-size: 14px;
+    color: #fff;
+    text-decoration: none;
+    position: absolute;
+    top: 3px;
+    right: 6px;
+    z-index: 3;
+    margin: 0;
+    padding: 0;
+}
+.site-box > a::after {
+    content: '[ Enter ]';
+    display: inline-block;
+    margin: 6px 16px 16px;
+    font-family: 'VT323', monospace;
+    font-size: 17px;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    padding: 1px 12px 0;
+    color: #000;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+}
+.site-box .bottom-dot {
+    display: block !important;
+    position: absolute;
+    width: 160px;
+    height: 160px;
+    right: 0;
+    bottom: 0;
+    background: url(https://redtailworks.nekoweb.org/www.redtail.works/redtailCrop.png) bottom right / contain no-repeat;
+    z-index: 999;
+    pointer-events: none;
+}
+
+/* ============================================================
+   POST BOX
+   ============================================================ */
+
+/* outer Win98 window shell */
+.post-box {
+    background: #c0c0c0 !important;
+    background-image: none !important;
+    border: 2px solid !important;
+    border-color: #ffffff #808080 #808080 #ffffff !important;
+    box-shadow: 2px 2px 0 #000 !important;
+    font-family: 'IBM Plex Mono', monospace !important;
+    color: #000 !important;
+    text-shadow: none !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+
+/* inner container — just grey chrome, no purple */
+.post-box .post-box-inner {
+    background: #c0c0c0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+}
+
+/* hide top/bottom dots */
+.post-box .post-top-dot,
+.post-box .post-bottom-dot {
+    display: none !important;
+}
+
+/* meta row: author · date */
+.post-box .post-author,
+.post-box .post-date,
+.post-box .post-dot {
+    display: inline !important;
+    font-family: 'IBM Plex Mono', monospace !important;
+    font-size: 11px !important;
+    color: #000 !important;
+    font-style: normal !important;
+    text-shadow: none !important;
+}
+.post-box .post-author {
+    padding-left: 8px !important;
+}
+
+/* post title — this is the purple titlebar */
+.post-box .post-title {
+    display: block !important;
+    background: linear-gradient(90deg, #2d006b, #8800ee) !important;
+    font-family: 'VT323', monospace !important;
+    font-size: 22px !important;
+    font-weight: normal !important;
+    font-style: normal !important;
+    color: #fff !important;
+    letter-spacing: 0.04em !important;
+    margin: 0 !important;
+    padding: 3px 10px 2px !important;
+    text-shadow: none !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* description — inset white panel */
+.post-box .post-description {
+    display: block !important;
+    background: #fff !important;
+    border: 2px solid !important;
+    border-color: #808080 #ffffff #ffffff #808080 !important;
+    font-family: 'IBM Plex Mono', monospace !important;
+    font-size: 12px !important;
+    color: #000 !important;
+    line-height: 1.6 !important;
+    margin: 8px !important;
+    padding: 8px 10px !important;
+    text-shadow: none !important;
+}
